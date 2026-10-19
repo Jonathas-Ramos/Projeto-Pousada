@@ -17,7 +17,7 @@ from . import clock, models
 from .config import allowed_hosts, expected_origin
 from .database import initialize, transaction
 from .repository import Repository, mask_cpf, money, reservation_details, serialize_room
-from .security import COOKIE, SESSION_SECONDS, authenticate, digest, hash_password, require_user, secure_cookie, verify_password
+from .security import COOKIE, SESSION_SECONDS, authenticate, create_first_user, digest, first_access_status, hash_password, require_user, secure_cookie, verify_password
 from .services import CatalogService, ReservationService
 
 
@@ -95,6 +95,24 @@ def login(dto: models.Login, request: Request, response: Response):
     if origin and origin != expected_origin(str(request.base_url)):
         raise HTTPException(403, "Origem inválida.")
     user, token = authenticate(dto.login, dto.senha, request.client.host if request.client else "local")
+    response.set_cookie(COOKIE, token, max_age=SESSION_SECONDS, httponly=True, secure=secure_cookie(), samesite="strict")
+    return user
+
+
+@app.get("/api/auth/first-access", tags=["Autenticação"])
+def first_access():
+    return first_access_status()
+
+
+@app.post("/api/auth/first-access", status_code=201, tags=["Autenticação"])
+def register_first_user(dto: models.PrimeiroAcesso, request: Request, response: Response):
+    origin = request.headers.get("origin")
+    if origin and origin != expected_origin(str(request.base_url)):
+        raise HTTPException(403, "Origem inválida.")
+    if dto.senha != dto.confirmar_senha:
+        raise HTTPException(400, "As senhas não coincidem.")
+    user, token = create_first_user(dto.nome, dto.login, dto.senha, dto.codigo,
+                                    request.client.host if request.client else "local")
     response.set_cookie(COOKIE, token, max_age=SESSION_SECONDS, httponly=True, secure=secure_cookie(), samesite="strict")
     return user
 

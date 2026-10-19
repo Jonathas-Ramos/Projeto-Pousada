@@ -255,3 +255,26 @@ sequenceDiagram
     API->>DB: COMMIT
     API-->>UI: Reserva atualizada
 ```
+
+## Sequência: primeiro acesso
+
+```mermaid
+sequenceDiagram
+    actor Responsavel
+    participant UI as Página de login
+    participant API as FastAPI
+    participant DB as SQLite
+    Responsavel->>UI: Abre o sistema
+    UI->>API: GET /api/auth/first-access
+    API->>DB: Verificar se existe usuário
+    DB-->>API: Banco sem usuários
+    API-->>UI: Exibir formulário inicial
+    Responsavel->>UI: Nome, usuário, senha e código recebido
+    UI->>API: POST /api/auth/first-access
+    API->>API: Validar origem, senha e código secreto
+    API->>DB: BEGIN IMMEDIATE + verificar ausência de usuário
+    API->>DB: Inserir primeiro usuário, auditoria e sessão
+    API->>DB: COMMIT
+    API-->>UI: Cookie de sessão e usuário autenticado
+    Note over API,DB: Novas tentativas de primeiro acesso retornam 409
+```

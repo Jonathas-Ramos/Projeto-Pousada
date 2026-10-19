@@ -30,6 +30,12 @@ Cobertura dos cenários:
 
 Houve um aviso de depreciação da dependência Starlette sobre a compatibilidade do TestClient com httpx. Os testes passaram; o aviso não é erro da aplicação. Não foi ocultado.
 
+### Atualização: primeiro acesso pela interface
+
+A suíte completa passou novamente com **37 casos**. Os testes novos verificam código de ativação obrigatório, erro de código e de confirmação de senha, origem inválida, limite de tentativas, fechamento do cadastro após a primeira conta e concorrência entre duas tentativas simultâneas. O início no Render preserva o login antigo até `COLONIA_SETUP_CODE` ser configurado; com o código, não cria uma conta automática. `node --check frontend/app.js` passou.
+
+Em Edge headless, com banco isolado e viewport de **360 px**, foram exercitados: formulário de primeiro acesso, rejeição de código inválido, criação da conta com código correto, logout e novo login. A captura local foi inspecionada; não houve rolagem horizontal nem erro JavaScript. O teste ocorreu localmente; a publicação no Render ainda precisa ser conferida no serviço.
+
 ## Navegador e apresentação
 
 Fluxo real executado no Edge headless: login, simular disponibilidade, criar reserva com acompanhante, registrar pagamento, check-in, check-out, criar hóspede e consultar quartos disponíveis. Nenhum erro JavaScript capturado.

@@ -1,4 +1,4 @@
-"""Inicialização não interativa para hospedagens sem terminal, como o Render."""
+"""Inicialização do serviço web, com transição segura para o primeiro acesso pela interface."""
 import os
 import sys
 
@@ -7,20 +7,25 @@ from manage import create_admin
 
 
 def main():
-    password = os.getenv("COLONIA_ADMIN_PASSWORD")
-    if os.getenv("RENDER_EXTERNAL_URL") and not password:
-        raise SystemExit("Configure COLONIA_ADMIN_PASSWORD nas variáveis secretas do Render.")
-    if password:
-        login = (os.getenv("COLONIA_ADMIN_LOGIN") or "").strip().lower()
-        if not login or not os.getenv("COLONIA_ADMIN_NAME"):
-            raise SystemExit("Configure COLONIA_ADMIN_LOGIN e COLONIA_ADMIN_NAME junto com a senha.")
-        initialize()
-        with transaction() as db:
-            existing = db.execute("SELECT ativo FROM usuarios WHERE login=?", (login,)).fetchone()
-        if existing and not existing["ativo"]:
-            raise SystemExit("A conta configurada existe, mas está inativa. Reative-a antes de iniciar.")
-        if not existing:
-            create_admin()
+    setup_code = os.getenv("COLONIA_SETUP_CODE", "").strip()
+    if setup_code and not 16 <= len(setup_code) <= 200:
+        raise SystemExit("COLONIA_SETUP_CODE deve conter de 16 a 200 caracteres.")
+    if not setup_code:
+        # Mantém o acesso existente até o responsável configurar o novo código no Render.
+        password = os.getenv("COLONIA_ADMIN_PASSWORD")
+        if os.getenv("RENDER_EXTERNAL_URL") and not password:
+            raise SystemExit("Configure COLONIA_SETUP_CODE nas variáveis secretas do Render.")
+        if password:
+            login = (os.getenv("COLONIA_ADMIN_LOGIN") or "").strip().lower()
+            if not login or not os.getenv("COLONIA_ADMIN_NAME"):
+                raise SystemExit("Configure COLONIA_ADMIN_LOGIN e COLONIA_ADMIN_NAME junto com a senha antiga.")
+            initialize()
+            with transaction() as db:
+                existing = db.execute("SELECT ativo FROM usuarios WHERE login=?", (login,)).fetchone()
+            if existing and not existing["ativo"]:
+                raise SystemExit("A conta configurada existe, mas está inativa. Reative-a antes de iniciar.")
+            if not existing:
+                create_admin()
 
     port = os.getenv("PORT", "8000")
     if not port.isdecimal() or not 1 <= int(port) <= 65535:

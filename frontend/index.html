@@ -5,7 +5,31 @@
 <a class="skip" href="#content">Ir para o conteúdo</a>
 <section id="login-screen" class="login-screen" hidden>
   <div class="login-story"><span class="brand-mark">C</span><p class="eyebrow">COLÔNIAWEB</p><h1>Boas estadias<br>começam aqui.</h1><p>Reservas, hóspedes e quartos.<br>O dia a dia da sua colônia, organizado.</p><div class="story-footer">Um lugar para acolher. Um sistema para cuidar.</div></div>
-  <div class="login-panel"><form id="login-form"><p class="eyebrow">ÁREA DA RECEPÇÃO</p><h2>Bem-vindo de volta</h2><p class="muted">Entre para acompanhar as hospedagens.</p><label>Usuário<input name="login" autocomplete="username" required maxlength="100" autofocus></label><label>Senha<input name="senha" type="password" autocomplete="current-password" required maxlength="200"></label><p id="login-error" role="alert" class="error"></p><button class="primary" type="submit">Entrar no sistema →</button><p class="help">Primeiro acesso? Crie sua conta executando <code>python manage.py admin</code> no servidor.</p></form></div>
+  <div class="login-panel">
+    <form id="login-form">
+      <p class="eyebrow">ÁREA DA RECEPÇÃO</p><h2>Bem-vindo de volta</h2>
+      <p class="muted">Entre para acompanhar as hospedagens.</p>
+      <label>Usuário<input name="login" autocomplete="username" required maxlength="100" autofocus></label>
+      <label>Senha<input name="senha" type="password" autocomplete="current-password" required maxlength="200"></label>
+      <p id="login-error" role="alert" class="error"></p>
+      <button class="primary" type="submit">Entrar no sistema →</button>
+      <p class="help">Não tem acesso? Peça as credenciais ao responsável pelo sistema.</p>
+    </form>
+    <form id="setup-form" hidden>
+      <p class="eyebrow">PRIMEIRO ACESSO</p><h2>Crie sua conta</h2>
+      <p class="muted">Use o código de ativação entregue pelo responsável. Este cadastro aparece apenas antes da primeira conta.</p>
+      <p id="setup-unavailable" class="error" role="alert" hidden>O responsável ainda precisa configurar o código de ativação. Atualize esta página depois.</p>
+      <fieldset id="setup-fields">
+        <label>Seu nome<input name="nome" autocomplete="name" required minlength="3" maxlength="150"></label>
+        <label>Usuário<input name="login" autocomplete="username" required minlength="3" maxlength="100" pattern="[A-Za-z0-9._-]+" title="Use letras, números, ponto, hífen ou sublinhado."></label>
+        <label>Senha<input name="senha" type="password" autocomplete="new-password" required minlength="12" maxlength="200"></label>
+        <label>Confirme a senha<input name="confirmar_senha" type="password" autocomplete="new-password" required minlength="12" maxlength="200"></label>
+        <label>Código de ativação<input name="codigo" type="password" autocomplete="off" required minlength="16" maxlength="200"></label>
+        <p id="setup-error" role="alert" class="error"></p>
+        <button class="primary" type="submit">Criar conta e entrar →</button>
+      </fieldset>
+    </form>
+  </div>
 </section>
 <div id="shell" class="shell" hidden>
   <aside><a class="brand" href="#dashboard"><span class="brand-mark">C</span><span>Colônia<span class="brand-light">Web</span><small>GESTÃO DE HOSPEDAGENS</small></span></a><p class="nav-label">ESPAÇO DA RECEPÇÃO</p><nav aria-label="Menu principal"><a href="#dashboard">Visão geral</a><a href="#reservas">Reservas</a><a href="#hospedes">Hóspedes</a><a href="#quartos">Quartos e mapa</a><a href="#historico">Histórico</a><a href="#conta">Minha conta</a></nav><div class="sidebar-bottom"><a href="/docs" target="_blank" rel="noopener">Documentação da API ↗</a><div class="user"><span class="avatar" aria-hidden="true">R</span><span id="user-name"></span></div><button id="logout" class="logout">Encerrar sessão</button></div></aside>

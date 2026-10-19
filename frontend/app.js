@@ -14,14 +14,25 @@ const badge = status => `<span class="badge ${esc(status)}">${esc(labels[status]
 const state = {user:null,page:'dashboard',offset:0,q:'',status:'',version:0};
 let toastTimer;
 function toast(message){$('#toast').textContent=message;$('#toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').hidden=true,6000);}
-function signedOut(){state.user=null;$('#shell').hidden=true;$('#login-screen').hidden=false;$('#view').replaceChildren();$('#modal').close();$('#login-form input').focus();}
+function signedOut(){state.user=null;$('#shell').hidden=true;$('#login-screen').hidden=false;$('#view').replaceChildren();$('#modal').close();$('#login-form').hidden=false;$('#setup-form').hidden=true;$('#login-form input').focus();refreshFirstAccess();}
+async function refreshFirstAccess(){
+  try{
+    const status=await api('/auth/first-access');
+    if(state.user)return;
+    $('#login-form').hidden=status.required;
+    $('#setup-form').hidden=!status.required;
+    $('#setup-fields').disabled=!status.enabled;
+    $('#setup-unavailable').hidden=status.enabled;
+    if(status.required&&status.enabled)$('#setup-form input').focus();
+  }catch{if(!state.user)$('#login-error').textContent='Não foi possível verificar o primeiro acesso. Atualize a página.';}
+}
 async function api(path, options={}){
   const headers = {'Content-Type':'application/json',...options.headers};
   if(state.user?.csrf) headers['X-CSRF-Token']=state.user.csrf;
   const response=await fetch('/api'+path,{...options,headers,credentials:'same-origin'});
   let data; try{data=await response.json();}catch{throw new Error('O servidor não respondeu corretamente. Tente novamente.');}
   if(!response.ok){
-    if(response.status===401 && !path.includes('/auth/login')) signedOut();
+    if(response.status===401 && !path.startsWith('/auth/')) signedOut();
     const fields=(data.campos||[]).map(item=>`${item.campo}: ${item.erro}`).join('\n');
     throw new Error((data.detail||'Não foi possível concluir a operação.')+(fields?'\n'+fields:''));
   }
@@ -147,7 +158,8 @@ async function detail(id){
   $('#new-payment')?.addEventListener('click',()=>{openModal('Registrar pagamento',formShell(field('valor','Valor recebido (R$)',r.saldo,'number',`required min="0.01" max="${r.saldo}" step="0.01"`)+select('forma','Forma de pagamento',[['PIX','Pix'],['DINHEIRO','Dinheiro'],['CARTAO','Cartão'],['TRANSFERENCIA','Transferência']],'PIX')+'<p class="help full">Registre apenas um pagamento já recebido fora do sistema.</p>'));bindForm(async form=>{await send(`/reservas/${id}/pagamentos`,'POST',formData(form));toast('Pagamento registrado.');});});
   document.querySelectorAll('[data-refund]').forEach(b=>b.onclick=()=>{const paymentId=b.dataset.refund;openModal('Confirmar estorno realizado',formShell(textArea('motivo','Motivo do estorno','','required minlength="5" maxlength="300"')+check('confirmado','Confirmo que devolvi o valor externamente.',false)));$('[name=confirmado]').required=true;bindForm(async form=>{const d=formData(form);d.confirmado=d.confirmado==='on';await send(`/pagamentos/${paymentId}/estornar`,'POST',d);toast('Estorno registrado.');});});
 }
-$('#login-form').onsubmit=async event=>{event.preventDefault();const form=event.currentTarget,b=$('button',form);b.disabled=true;$('#login-error').textContent='';try{state.user=await send('/auth/login','POST',formData(form));form.reset();showApp();}catch(error){$('#login-error').textContent=error.message;}finally{b.disabled=false;}};
+$('#login-form').onsubmit=async event=>{event.preventDefault();const form=event.currentTarget,b=$('button',form),label=b.textContent;b.disabled=true;b.textContent='Entrando…';$('#login-error').textContent='';try{state.user=await send('/auth/login','POST',formData(form));form.reset();showApp();}catch(error){$('#login-error').textContent=error.message;}finally{b.disabled=false;b.textContent=label;}};
+$('#setup-form').onsubmit=async event=>{event.preventDefault();const form=event.currentTarget,b=$('button',form),label=b.textContent,data=formData(form);$('#setup-error').textContent='';if(data.senha!==data.confirmar_senha){$('#setup-error').textContent='As senhas não coincidem.';return;}b.disabled=true;b.textContent='Criando acesso…';try{state.user=await send('/auth/first-access','POST',data);form.reset();showApp();}catch(error){$('#setup-error').textContent=error.message;await refreshFirstAccess();}finally{b.disabled=false;b.textContent=label;}};
 $('#logout').onclick=()=>safe(async()=>{await send('/auth/logout','POST');signedOut();});
 function navigate(){state.page=location.hash.slice(1) in titles?location.hash.slice(1):'dashboard';state.offset=0;state.q='';state.status='';render();}
 window.addEventListener('hashchange',navigate);

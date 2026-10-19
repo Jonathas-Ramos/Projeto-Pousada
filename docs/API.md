@@ -2,10 +2,11 @@
 
 Base: `/api`. JSON UTF-8. Datas `YYYY-MM-DD`. Reais em números/strings decimais com até duas casas na entrada. Valores internos em centavos; respostas monetárias em reais. "Hoje" e os limites de check-in são avaliados em `America/Sao_Paulo`, independentemente do fuso do servidor.
 
-O login gera cookie HttpOnly e retorna `{id, nome, csrf}`. Todas as operações protegidas exigem cookie válido. POST/PUT/PATCH/DELETE protegidos exigem `X-CSRF-Token` igual ao `csrf` da sessão. Não há CORS aberto.
+O primeiro acesso e o login geram cookie HttpOnly e retornam `{id, nome, csrf}`. Todas as operações protegidas exigem cookie válido. POST/PUT/PATCH/DELETE protegidos exigem `X-CSRF-Token` igual ao `csrf` da sessão. Não há CORS aberto.
 
 | Recurso | Operações |
 |---|---|
+| `/auth/first-access` | GET `{required, enabled}`; POST `{nome, login, senha, confirmar_senha, codigo}` cria a primeira conta e inicia sessão (somente banco sem usuários, com `COLONIA_SETUP_CODE` configurado) |
 | `/auth/login` | POST `{login, senha}` |
 | `/auth/me` | GET identidade e token CSRF |
 | `/auth/logout` | POST revogar sessão |
@@ -52,14 +53,14 @@ As datas são ilustrativas; use datas presentes/futuras. A resposta inclui `id`,
 
 - `200`: consulta, edição ou ação concluída.
 - `201`: registro criado.
-- `400`: credencial atual incorreta na troca ou requisição inválida.
+- `400`: credencial atual incorreta na troca, confirmação de senha diferente ou requisição inválida.
 - `401`: login inválido ou sessão ausente/expirada.
-- `403`: CSRF/origem inválidos.
+- `403`: CSRF/origem ou código de ativação inválidos.
 - `404`: registro não encontrado.
-- `409`: CPF duplicado, tentativa de alterar a planta fixa, conflito de reserva ou outra regra de negócio.
+- `409`: primeiro acesso já concluído, CPF duplicado, tentativa de alterar a planta fixa, conflito de reserva ou outra regra de negócio.
 - `413`: corpo declarado maior que o limite da aplicação.
 - `422`: erro de tipo/formato; corpo contém `detail` e `campos` com nome e mensagem, sem ecoar entradas sensíveis.
-- `429`: tentativas de login excedidas; janela de 15 minutos.
-- `503`: indisponibilidade operacional do banco; tentar novamente.
+- `429`: tentativas de login ou de código de ativação excedidas; janela de 15 minutos.
+- `503`: banco temporariamente indisponível ou primeiro acesso sem código configurado.
 
 Exemplo: `{"detail":"Quantidade de hóspedes excede a capacidade do quarto."}`.

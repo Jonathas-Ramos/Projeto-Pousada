@@ -37,7 +37,7 @@ No Windows, também é possível usar diretamente `.venv\Scripts\python.exe` sem
 
 ## Funcionalidades
 
-- Login, logout, expiração de sessão em oito horas e troca de senha.
+- Primeiro acesso pela página com código de ativação, login, logout, expiração de sessão em oito horas e troca de senha.
 - CRUD de hóspedes, endereço individual e reservas; consulta e edição de capacidade/condição dos quartos da planta fixa.
 - Pesquisa de hóspedes por nome/CPF, listagem paginada e consulta por ID.
 - CPF validado, normalizado e único. Listas exibem CPF mascarado.
@@ -142,11 +142,11 @@ Esta opção publica uma demonstração sem VPS e sem migrar o banco. **Os dados
 
 1. Coloque **o conteúdo desta pasta `ColoniaWeb` na raiz de um repositório Git**, sem `data/`, `backups/`, `.venv/` ou `.env`. O arquivo `render.yaml` deve ficar na raiz do repositório. Pode ser privado, desde que você autorize o Render a acessá-lo.
 2. No Render, escolha **New → Blueprint**, conecte o repositório e confira que o serviço será criado com `plan: free` e `runtime: docker`.
-3. Quando o Render solicitar `COLONIA_ADMIN_PASSWORD`, informe uma senha exclusiva de **12 a 200 caracteres**. Ela será usada para criar o usuário configurado quando ele ainda não existir. O login configurado é `edusilva`, com nome exibido `eduardo`; não há senha no código nem no `render.yaml`.
-4. Aguarde a implantação e abra o endereço `https://...onrender.com`. O Render fornece `RENDER_EXTERNAL_HOSTNAME` e `RENDER_EXTERNAL_URL`, que o projeto usa para aceitar o host e a origem do login. O cookie de sessão é `Secure`.
-5. Entre com `edusilva` e a senha escolhida. Verifique `/api/health`, os 14 quartos, o login e uma reserva fictícia. O primeiro acesso após inatividade pode demorar enquanto o serviço gratuito desperta.
+3. Configure `COLONIA_SETUP_CODE` em **Environment** como segredo de **16 a 200 caracteres**, difícil de adivinhar. Na criação de um Blueprint novo, o Render pede esse valor por causa de `sync: false`. Em um serviço já existente, adicione-o manualmente: um Blueprint atualizado **não pede novamente** os valores `sync: false`. Não coloque o código no GitHub.
+4. Aguarde a implantação e abra o endereço `https://...onrender.com`. O Render fornece `RENDER_EXTERNAL_HOSTNAME` e `RENDER_EXTERNAL_URL`, que o projeto usa para aceitar o host e a origem do primeiro acesso e do login. O cookie de sessão é `Secure`.
+5. Se o banco ainda não possui usuário, a página mostra **Crie sua conta**. Entregue o código de ativação somente à pessoa responsável; ela informa nome, usuário, senha própria de **12 a 200 caracteres** e o código, sem usar terminal. Depois que a primeira conta é criada, esse formulário se fecha e o login normal aparece. Verifique `/api/health`, os 14 quartos e uma reserva fictícia. O primeiro acesso após inatividade pode demorar enquanto o serviço gratuito desperta.
 
-O comando em `start.py` cria a conta configurada de forma não interativa quando ela ainda não existe, sem apagar outras contas ou trocar senhas já existentes, e usa a porta `PORT` indicada pelo Render. Fora do Render, o Docker continua podendo iniciar sem essas variáveis; nesse caso, crie o administrador manualmente com `docker exec -it coloniaweb python manage.py admin`. Se o serviço já estava implantado, sincronize o Blueprint para aplicar o novo login; a senha secreta existente no Render será reutilizada.
+Enquanto `COLONIA_SETUP_CODE` não estiver configurado em um serviço já existente, o `start.py` mantém o antigo provisionamento por `COLONIA_ADMIN_*` para não interromper o login atual. Após configurar o novo código e implantar, ele deixa de criar `edusilva` automaticamente. As variáveis antigas podem então ser removidas. Um banco que **já contém usuário** não exibe a criação do primeiro acesso: use a conta existente. A mudança não apaga usuários nem redefine senhas. No plano gratuito, o banco SQLite é efêmero; se ele for recriado vazio, será necessário cadastrar novamente a primeira conta com o código de ativação. Fora do Render, a criação manual continua disponível com `docker exec -it coloniaweb python manage.py admin`.
 
 Para usar um domínio próprio ou outro proxy, configure `COLONIA_HOSTS` com os hosts permitidos e `COLONIA_PUBLIC_URL` com a origem HTTPS esperada no login. Não configure uma origem curinga. A implantação remota depende da sua conta no Render e **não foi executada neste ambiente**.
 

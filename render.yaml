@@ -7,9 +7,5 @@ services:
     envVars:
       - key: COLONIA_SECURE_COOKIE
         value: "1"
-      - key: COLONIA_ADMIN_LOGIN
-        value: edusilva
-      - key: COLONIA_ADMIN_NAME
-        value: "eduardo"
-      - key: COLONIA_ADMIN_PASSWORD
+      - key: COLONIA_SETUP_CODE
         sync: false

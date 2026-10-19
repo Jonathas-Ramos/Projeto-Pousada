@@ -30,6 +30,52 @@ def verify_password(password, encoded):
     return algorithm == "pbkdf2_sha256" and hmac.compare_digest(result, expected)
 
 
+def issue_session(db, user_id, now):
+    db.execute("DELETE FROM sessoes WHERE expira<?", (now,))
+    token, csrf = secrets.token_urlsafe(32), secrets.token_urlsafe(32)
+    db.execute("INSERT INTO sessoes VALUES (?,?,?,?)", (digest(token), user_id, csrf, now + SESSION_SECONDS))
+    return token, csrf
+
+
+def first_access_status():
+    with transaction() as db:
+        required = db.execute("SELECT 1 FROM usuarios LIMIT 1").fetchone() is None
+    code = os.getenv("COLONIA_SETUP_CODE", "").strip()
+    return {"required": required, "enabled": required and 16 <= len(code) <= 200}
+
+
+def create_first_user(name, login, password, code, client_ip):
+    configured_code = os.getenv("COLONIA_SETUP_CODE", "").strip()
+    if not 16 <= len(configured_code) <= 200:
+        raise HTTPException(503, "O primeiro acesso ainda não foi habilitado pelo responsável.")
+    now = int(time.time())
+    key = digest("setup:" + client_ip)
+    outcome = None
+    with transaction(write=True) as db:
+        if db.execute("SELECT 1 FROM usuarios LIMIT 1").fetchone():
+            raise HTTPException(409, "O primeiro acesso já foi criado. Entre com sua conta.")
+        db.execute("DELETE FROM tentativas_login WHERE inicio<?", (now - 900,))
+        row = db.execute("SELECT quantidade FROM tentativas_login WHERE chave=?", (key,)).fetchone()
+        if row and row["quantidade"] >= 10:
+            outcome = (429, "Muitas tentativas. Aguarde 15 minutos.")
+        elif not hmac.compare_digest(code.encode("utf-8"), configured_code.encode("utf-8")):
+            db.execute("""INSERT INTO tentativas_login(chave,quantidade,inicio) VALUES (?,1,?)
+                ON CONFLICT(chave) DO UPDATE SET quantidade=quantidade+1""", (key, now))
+            outcome = (403, "Código de ativação inválido.")
+        else:
+            login = login.lower()
+            cursor = db.execute("INSERT INTO usuarios(nome,login,senha_hash) VALUES (?,?,?)",
+                                (name, login, hash_password(password)))
+            db.execute("INSERT INTO auditoria(usuario_id,acao,entidade,registro_id) VALUES (?,?,?,?)",
+                       (cursor.lastrowid, "CRIAR_PRIMEIRO_ACESSO", "usuarios", cursor.lastrowid))
+            db.execute("DELETE FROM tentativas_login WHERE chave=?", (key,))
+            token, csrf = issue_session(db, cursor.lastrowid, now)
+            user = {"id": cursor.lastrowid, "nome": name, "csrf": csrf}
+    if outcome:
+        raise HTTPException(*outcome)
+    return user, token
+
+
 def authenticate(login, password, client_ip):
     now = int(time.time())
     # IP + conta: limita força bruta por origem e por login sem guardar dados em logs.
@@ -51,9 +97,7 @@ def authenticate(login, password, client_ip):
                 db.execute("""INSERT INTO tentativas_login(chave,quantidade,inicio) VALUES (?,1,?)
                     ON CONFLICT(chave) DO UPDATE SET quantidade=quantidade+1""", (key, now))
         else:
-            db.execute("DELETE FROM sessoes WHERE expira<?", (now,))
-            token, csrf = secrets.token_urlsafe(32), secrets.token_urlsafe(32)
-            db.execute("INSERT INTO sessoes VALUES (?,?,?,?)", (digest(token), user["id"], csrf, now + SESSION_SECONDS))
+            token, csrf = issue_session(db, user["id"], now)
     if not valid:
         raise HTTPException(401, "Login ou senha incorretos.")
     return {"id": user["id"], "nome": user["nome"], "csrf": csrf}, token
