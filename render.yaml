@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: coloniaweb
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: COLONIA_SECURE_COOKIE
+        value: "1"
+      - key: COLONIA_ADMIN_LOGIN
+        value: admin
+      - key: COLONIA_ADMIN_NAME
+        value: "Recepção"
+      - key: COLONIA_ADMIN_PASSWORD
+        sync: false
