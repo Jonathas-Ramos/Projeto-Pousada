@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#14382c"><title>ColôniaWeb · Gestão de hospedagens</title><link rel="icon" href="/static/favicon.svg"><link rel="stylesheet" href="/static/styles.css"><script src="/static/app.js" defer></script></head>
+<body>
+<a class="skip" href="#content">Ir para o conteúdo</a>
+<section id="login-screen" class="login-screen" hidden>
+  <div class="login-story"><span class="brand-mark">C</span><p class="eyebrow">COLÔNIAWEB</p><h1>Boas estadias<br>começam aqui.</h1><p>Reservas, hóspedes e quartos.<br>O dia a dia da sua colônia, organizado.</p><div class="story-footer">Um lugar para acolher. Um sistema para cuidar.</div></div>
+  <div class="login-panel"><form id="login-form"><p class="eyebrow">ÁREA DA RECEPÇÃO</p><h2>Bem-vindo de volta</h2><p class="muted">Entre para acompanhar as hospedagens.</p><label>Usuário<input name="login" autocomplete="username" required maxlength="100" autofocus></label><label>Senha<input name="senha" type="password" autocomplete="current-password" required maxlength="200"></label><p id="login-error" role="alert" class="error"></p><button class="primary" type="submit">Entrar no sistema →</button><p class="help">Primeiro acesso? Crie sua conta executando <code>python manage.py admin</code> no servidor.</p></form></div>
+</section>
+<div id="shell" class="shell" hidden>
+  <aside><a class="brand" href="#dashboard"><span class="brand-mark">C</span><span>Colônia<span class="brand-light">Web</span><small>GESTÃO DE HOSPEDAGENS</small></span></a><p class="nav-label">ESPAÇO DA RECEPÇÃO</p><nav aria-label="Menu principal"><a href="#dashboard">Visão geral</a><a href="#reservas">Reservas</a><a href="#hospedes">Hóspedes</a><a href="#quartos">Quartos e mapa</a><a href="#historico">Histórico</a><a href="#conta">Minha conta</a></nav><div class="sidebar-bottom"><a href="/docs" target="_blank" rel="noopener">Documentação da API ↗</a><div class="user"><span class="avatar" aria-hidden="true">R</span><span id="user-name"></span></div><button id="logout" class="logout">Encerrar sessão</button></div></aside>
+  <main id="content" tabindex="-1"><header><div><p class="eyebrow">COLÔNIA · RECEPÇÃO</p><h1 id="page-title">Visão geral</h1><p id="page-subtitle" class="muted"></p></div><span id="today" class="today"></span></header><div id="view" aria-live="polite"></div><footer>ColôniaWeb <span>Hospedar com cuidado.</span></footer></main>
+</div>
+<dialog id="modal" aria-labelledby="modal-title"><div class="dialog-head"><h2 id="modal-title"></h2><button id="close-modal" class="icon-button" aria-label="Fechar janela">×</button></div><div id="modal-body"></div></dialog>
+<div id="toast" role="status" aria-live="polite" hidden></div>
+</body></html>
