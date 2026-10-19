@@ -39,6 +39,7 @@ def test_render_login_origin(tmp_path, monkeypatch):
 
 
 def test_start_uses_render_port_and_setup_code_without_creating_user(tmp_path, monkeypatch):
+    monkeypatch.delenv("COLONIA_DEMO_MODE", raising=False)
     monkeypatch.setenv("COLONIA_DB", str(tmp_path / "startup.sqlite3"))
     monkeypatch.setenv("RENDER_EXTERNAL_URL", "https://coloniaweb-exemplo.onrender.com")
     monkeypatch.setenv("COLONIA_SETUP_CODE", "CodigoDeTesteSeguro123!")
@@ -61,6 +62,7 @@ def test_start_uses_render_port_and_setup_code_without_creating_user(tmp_path, m
 
 
 def test_start_rejects_invalid_port(monkeypatch):
+    monkeypatch.delenv("COLONIA_DEMO_MODE", raising=False)
     monkeypatch.delenv("COLONIA_SETUP_CODE", raising=False)
     monkeypatch.delenv("RENDER_EXTERNAL_URL", raising=False)
     monkeypatch.delenv("COLONIA_ADMIN_PASSWORD", raising=False)
@@ -70,6 +72,7 @@ def test_start_rejects_invalid_port(monkeypatch):
 
 
 def test_start_preserves_existing_account(tmp_path, monkeypatch):
+    monkeypatch.delenv("COLONIA_DEMO_MODE", raising=False)
     from backend.security import hash_password
 
     monkeypatch.setenv("COLONIA_DB", str(tmp_path / "existing.sqlite3"))
@@ -87,6 +90,7 @@ def test_start_preserves_existing_account(tmp_path, monkeypatch):
 
 
 def test_start_keeps_legacy_login_until_setup_code_is_configured(tmp_path, monkeypatch):
+    monkeypatch.delenv("COLONIA_DEMO_MODE", raising=False)
     monkeypatch.setenv("COLONIA_DB", str(tmp_path / "legacy.sqlite3"))
     monkeypatch.setenv("RENDER_EXTERNAL_URL", "https://coloniaweb-exemplo.onrender.com")
     monkeypatch.delenv("COLONIA_SETUP_CODE", raising=False)
@@ -100,8 +104,28 @@ def test_start_keeps_legacy_login_until_setup_code_is_configured(tmp_path, monke
 
 
 def test_render_requires_setup_code_or_legacy_password(monkeypatch):
+    monkeypatch.delenv("COLONIA_DEMO_MODE", raising=False)
     monkeypatch.setenv("RENDER_EXTERNAL_URL", "https://coloniaweb-exemplo.onrender.com")
     monkeypatch.delenv("COLONIA_SETUP_CODE", raising=False)
     monkeypatch.delenv("COLONIA_ADMIN_PASSWORD", raising=False)
     with pytest.raises(SystemExit, match="COLONIA_SETUP_CODE"):
         start.main()
+
+
+def test_start_demo_needs_no_secret_or_terminal_account(tmp_path, monkeypatch):
+    monkeypatch.setenv("COLONIA_DB", str(tmp_path / "demo-start.sqlite3"))
+    monkeypatch.setenv("RENDER_EXTERNAL_URL", "https://coloniaweb-exemplo.onrender.com")
+    monkeypatch.setenv("COLONIA_DEMO_MODE", "1")
+    monkeypatch.setenv("COLONIA_SETUP_CODE", "codigo-antigo-curto")
+    monkeypatch.setenv("COLONIA_ADMIN_LOGIN", "edusilva")
+    monkeypatch.setenv("COLONIA_ADMIN_NAME", "eduardo")
+    monkeypatch.setenv("COLONIA_ADMIN_PASSWORD", "SenhaAntiga123!")
+    monkeypatch.setenv("PORT", "10000")
+    calls = []
+    monkeypatch.setattr(start.os, "execv", lambda path, args: calls.append(args))
+    start.main()
+    initialize()
+    with transaction() as db:
+        assert db.execute("SELECT COUNT(*) FROM usuarios").fetchone()[0] == 0
+        assert db.execute("SELECT COUNT(*) FROM quartos").fetchone()[0] == 14
+    assert calls[0][-4:] == ["--port", "10000", "--workers", "1"]

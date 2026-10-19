@@ -17,14 +17,15 @@
     </form>
     <form id="setup-form" hidden>
       <p class="eyebrow">PRIMEIRO ACESSO</p><h2>Crie sua conta</h2>
-      <p class="muted">Use o código de ativação entregue pelo responsável. Este cadastro aparece apenas antes da primeira conta.</p>
+      <p class="muted">Crie a primeira conta para entrar no sistema. Este cadastro aparece apenas enquanto não existe usuário.</p>
+      <p id="setup-demo-note" class="help" hidden>Modo de apresentação: digite o código <strong id="setup-demo-code"></strong>. Use somente dados fictícios.</p>
       <p id="setup-unavailable" class="error" role="alert" hidden>O responsável ainda precisa configurar o código de ativação. Atualize esta página depois.</p>
       <fieldset id="setup-fields">
         <label>Seu nome<input name="nome" autocomplete="name" required minlength="3" maxlength="150"></label>
         <label>Usuário<input name="login" autocomplete="username" required minlength="3" maxlength="100" pattern="[A-Za-z0-9._-]+" title="Use letras, números, ponto, hífen ou sublinhado."></label>
         <label>Senha<input name="senha" type="password" autocomplete="new-password" required minlength="12" maxlength="200"></label>
         <label>Confirme a senha<input name="confirmar_senha" type="password" autocomplete="new-password" required minlength="12" maxlength="200"></label>
-        <label>Código de ativação<input name="codigo" type="password" autocomplete="off" required minlength="16" maxlength="200"></label>
+        <label>Código de ativação<input name="codigo" type="text" autocomplete="off" required maxlength="200"></label>
         <p id="setup-error" role="alert" class="error"></p>
         <button class="primary" type="submit">Criar conta e entrar →</button>
       </fieldset>

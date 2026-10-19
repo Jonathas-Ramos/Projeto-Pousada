@@ -7,5 +7,5 @@ services:
     envVars:
       - key: COLONIA_SECURE_COOKIE
         value: "1"
-      - key: COLONIA_SETUP_CODE
-        sync: false
+      - key: COLONIA_DEMO_MODE
+        value: "1"

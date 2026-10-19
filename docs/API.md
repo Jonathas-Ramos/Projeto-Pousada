@@ -6,7 +6,7 @@ O primeiro acesso e o login geram cookie HttpOnly e retornam `{id, nome, csrf}`.
 
 | Recurso | Operações |
 |---|---|
-| `/auth/first-access` | GET `{required, enabled}`; POST `{nome, login, senha, confirmar_senha, codigo}` cria a primeira conta e inicia sessão (somente banco sem usuários, com `COLONIA_SETUP_CODE` configurado) |
+| `/auth/first-access` | GET `{required, enabled}` e, no modo de apresentação enquanto não há usuário, `demo_code`; POST `{nome, login, senha, confirmar_senha, codigo}` cria a primeira conta e inicia sessão (somente banco sem usuários, com `COLONIA_DEMO_MODE=1` ou `COLONIA_SETUP_CODE` configurado) |
 | `/auth/login` | POST `{login, senha}` |
 | `/auth/me` | GET identidade e token CSRF |
 | `/auth/logout` | POST revogar sessão |

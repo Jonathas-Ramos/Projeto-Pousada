@@ -269,9 +269,9 @@ sequenceDiagram
     API->>DB: Verificar se existe usuário
     DB-->>API: Banco sem usuários
     API-->>UI: Exibir formulário inicial
-    Responsavel->>UI: Nome, usuário, senha e código recebido
+    Responsavel->>UI: Nome, usuário, senha e código exibido (demonstração)
     UI->>API: POST /api/auth/first-access
-    API->>API: Validar origem, senha e código secreto
+    API->>API: Validar origem, senha e código do modo ativo
     API->>DB: BEGIN IMMEDIATE + verificar ausência de usuário
     API->>DB: Inserir primeiro usuário, auditoria e sessão
     API->>DB: COMMIT

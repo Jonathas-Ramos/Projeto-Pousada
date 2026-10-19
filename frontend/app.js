@@ -23,6 +23,8 @@ async function refreshFirstAccess(){
     $('#setup-form').hidden=!status.required;
     $('#setup-fields').disabled=!status.enabled;
     $('#setup-unavailable').hidden=status.enabled;
+    $('#setup-demo-note').hidden=!status.demo_code;
+    $('#setup-demo-code').textContent=status.demo_code||'';
     if(status.required&&status.enabled)$('#setup-form input').focus();
   }catch{if(!state.user)$('#login-error').textContent='Não foi possível verificar o primeiro acesso. Atualize a página.';}
 }

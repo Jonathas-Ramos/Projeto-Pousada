@@ -12,6 +12,7 @@ from .database import transaction
 COOKIE = "colonia_session"
 ITERATIONS = 600_000
 SESSION_SECONDS = 8 * 60 * 60
+DEMO_SETUP_CODE = "APRESENTACAO2026"
 
 
 def digest(value):
@@ -40,13 +41,18 @@ def issue_session(db, user_id, now):
 def first_access_status():
     with transaction() as db:
         required = db.execute("SELECT 1 FROM usuarios LIMIT 1").fetchone() is None
-    code = os.getenv("COLONIA_SETUP_CODE", "").strip()
-    return {"required": required, "enabled": required and 16 <= len(code) <= 200}
+    demo = os.getenv("COLONIA_DEMO_MODE") == "1"
+    code = DEMO_SETUP_CODE if demo else os.getenv("COLONIA_SETUP_CODE", "").strip()
+    status = {"required": required, "enabled": required and (demo or 16 <= len(code) <= 200)}
+    if required and demo:
+        status["demo_code"] = DEMO_SETUP_CODE
+    return status
 
 
 def create_first_user(name, login, password, code, client_ip):
-    configured_code = os.getenv("COLONIA_SETUP_CODE", "").strip()
-    if not 16 <= len(configured_code) <= 200:
+    demo = os.getenv("COLONIA_DEMO_MODE") == "1"
+    configured_code = DEMO_SETUP_CODE if demo else os.getenv("COLONIA_SETUP_CODE", "").strip()
+    if not demo and not 16 <= len(configured_code) <= 200:
         raise HTTPException(503, "O primeiro acesso ainda não foi habilitado pelo responsável.")
     now = int(time.time())
     key = digest("setup:" + client_ip)

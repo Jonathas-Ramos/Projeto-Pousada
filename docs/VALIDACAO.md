@@ -36,6 +36,12 @@ A suíte completa passou novamente com **37 casos**. Os testes novos verificam c
 
 Em Edge headless, com banco isolado e viewport de **360 px**, foram exercitados: formulário de primeiro acesso, rejeição de código inválido, criação da conta com código correto, logout e novo login. A captura local foi inspecionada; não houve rolagem horizontal nem erro JavaScript. O teste ocorreu localmente; a publicação no Render ainda precisa ser conferida no serviço.
 
+### Atualização: modo de apresentação sem configuração de segredo
+
+O `render.yaml` agora ativa `COLONIA_DEMO_MODE=1`, com código público `APRESENTACAO2026` exibido na página. A suíte completa passou com **39 casos**. Os testes adicionais verificam que o modo demo funciona sem configuração de segredo, prevalece sobre um código antigo, não cria automaticamente `edusilva`, aceita apenas a primeira conta e permite logout seguido de login. `node --check frontend/app.js` e `git diff --check` passaram.
+
+No Edge headless, com banco isolado e viewport de **360 px**, o código de apresentação apareceu corretamente; cadastro, logout e login foram concluídos sem erros JavaScript ou rolagem horizontal. A captura da tela foi inspecionada. O serviço no Render ainda não foi verificado por este teste local. O código público não protege o primeiro cadastro: utilizar apenas dados fictícios.
+
 ## Navegador e apresentação
 
 Fluxo real executado no Edge headless: login, simular disponibilidade, criar reserva com acompanhante, registrar pagamento, check-in, check-out, criar hóspede e consultar quartos disponíveis. Nenhum erro JavaScript capturado.

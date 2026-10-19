@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 
 from backend.database import initialize, transaction
 from backend.main import app
-from backend.security import create_first_user
+from backend.security import DEMO_SETUP_CODE, create_first_user
 
 
 SETUP_CODE = "CodigoDeTesteSeguro123!"
@@ -23,6 +23,7 @@ FIRST_USER = {
 @pytest.fixture
 def setup_client(tmp_path, monkeypatch):
     monkeypatch.setenv("COLONIA_DB", str(tmp_path / "first-access.sqlite3"))
+    monkeypatch.delenv("COLONIA_DEMO_MODE", raising=False)
     monkeypatch.setenv("COLONIA_SETUP_CODE", SETUP_CODE)
     monkeypatch.setenv("COLONIA_SECURE_COOKIE", "0")
     monkeypatch.delenv("RENDER_EXTERNAL_URL", raising=False)
@@ -66,6 +67,7 @@ def test_first_access_rejects_wrong_code_password_confirmation_and_origin(setup_
 
 def test_first_access_requires_secret(tmp_path, monkeypatch):
     monkeypatch.setenv("COLONIA_DB", str(tmp_path / "no-code.sqlite3"))
+    monkeypatch.delenv("COLONIA_DEMO_MODE", raising=False)
     monkeypatch.delenv("COLONIA_SETUP_CODE", raising=False)
     with TestClient(app) as client:
         assert client.get("/api/auth/first-access").json() == {"required": True, "enabled": False}
@@ -82,6 +84,7 @@ def test_first_access_limits_wrong_codes(setup_client):
 
 def test_only_one_concurrent_first_account(tmp_path, monkeypatch):
     monkeypatch.setenv("COLONIA_DB", str(tmp_path / "race.sqlite3"))
+    monkeypatch.delenv("COLONIA_DEMO_MODE", raising=False)
     monkeypatch.setenv("COLONIA_SETUP_CODE", SETUP_CODE)
     initialize()
 
@@ -97,3 +100,29 @@ def test_only_one_concurrent_first_account(tmp_path, monkeypatch):
     assert 409 in outcomes
     with transaction() as db:
         assert db.execute("SELECT COUNT(*) FROM usuarios").fetchone()[0] == 1
+
+
+def test_demo_first_access_logout_and_login(tmp_path, monkeypatch):
+    monkeypatch.setenv("COLONIA_DB", str(tmp_path / "demo.sqlite3"))
+    monkeypatch.setenv("COLONIA_DEMO_MODE", "1")
+    monkeypatch.setenv("COLONIA_SETUP_CODE", SETUP_CODE)
+    monkeypatch.setenv("COLONIA_SECURE_COOKIE", "0")
+    monkeypatch.delenv("RENDER_EXTERNAL_URL", raising=False)
+    with TestClient(app) as client:
+        assert client.get("/api/auth/first-access").json() == {
+            "required": True, "enabled": True, "demo_code": DEMO_SETUP_CODE,
+        }
+        assert "Modo de apresentação" in client.get("/").text
+        wrong = client.post("/api/auth/first-access", json={**FIRST_USER, "codigo": "errado"})
+        assert wrong.status_code == 403
+        assert client.post("/api/auth/first-access", json=FIRST_USER).status_code == 403
+        created = client.post("/api/auth/first-access", json={**FIRST_USER, "codigo": DEMO_SETUP_CODE})
+        assert created.status_code == 201, created.text
+        assert client.get("/api/auth/me").status_code == 200
+        assert client.post("/api/auth/logout", headers={"X-CSRF-Token": created.json()["csrf"]}).status_code == 200
+        assert client.get("/api/auth/me").status_code == 401
+        assert client.get("/api/auth/first-access").json() == {"required": False, "enabled": False}
+        assert client.post("/api/auth/first-access", json={**FIRST_USER, "codigo": DEMO_SETUP_CODE}).status_code == 409
+        login = client.post("/api/auth/login", json={"login": "EduSilva", "senha": FIRST_USER["senha"]})
+        assert login.status_code == 200, login.text
+        assert client.get("/api/auth/me").status_code == 200
