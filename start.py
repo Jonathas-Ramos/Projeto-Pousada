@@ -2,6 +2,7 @@
 import os
 import sys
 
+from backend.database import initialize, transaction
 from manage import create_admin
 
 
@@ -10,9 +11,16 @@ def main():
     if os.getenv("RENDER_EXTERNAL_URL") and not password:
         raise SystemExit("Configure COLONIA_ADMIN_PASSWORD nas variáveis secretas do Render.")
     if password:
-        if not os.getenv("COLONIA_ADMIN_LOGIN") or not os.getenv("COLONIA_ADMIN_NAME"):
+        login = (os.getenv("COLONIA_ADMIN_LOGIN") or "").strip().lower()
+        if not login or not os.getenv("COLONIA_ADMIN_NAME"):
             raise SystemExit("Configure COLONIA_ADMIN_LOGIN e COLONIA_ADMIN_NAME junto com a senha.")
-        create_admin(only_if_empty=True)
+        initialize()
+        with transaction() as db:
+            existing = db.execute("SELECT ativo FROM usuarios WHERE login=?", (login,)).fetchone()
+        if existing and not existing["ativo"]:
+            raise SystemExit("A conta configurada existe, mas está inativa. Reative-a antes de iniciar.")
+        if not existing:
+            create_admin()
 
     port = os.getenv("PORT", "8000")
     if not port.isdecimal() or not 1 <= int(port) <= 65535:

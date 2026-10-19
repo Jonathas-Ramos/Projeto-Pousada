@@ -41,8 +41,8 @@ def test_render_login_origin(tmp_path, monkeypatch):
 def test_start_bootstraps_admin_and_uses_render_port(tmp_path, monkeypatch):
     monkeypatch.setenv("COLONIA_DB", str(tmp_path / "startup.sqlite3"))
     monkeypatch.setenv("RENDER_EXTERNAL_URL", "https://coloniaweb-exemplo.onrender.com")
-    monkeypatch.setenv("COLONIA_ADMIN_LOGIN", "admin")
-    monkeypatch.setenv("COLONIA_ADMIN_NAME", "Recepção")
+    monkeypatch.setenv("COLONIA_ADMIN_LOGIN", "edusilva")
+    monkeypatch.setenv("COLONIA_ADMIN_NAME", "eduardo")
     monkeypatch.setenv("COLONIA_ADMIN_PASSWORD", "SenhaTeste123!")
     monkeypatch.setenv("PORT", "10000")
     calls = []
@@ -52,6 +52,7 @@ def test_start_bootstraps_admin_and_uses_render_port(tmp_path, monkeypatch):
     start.main()
     with transaction() as db:
         assert db.execute("SELECT COUNT(*) FROM usuarios").fetchone()[0] == 1
+        assert db.execute("SELECT nome FROM usuarios WHERE login='edusilva'").fetchone()[0] == "eduardo"
         assert db.execute("SELECT COUNT(*) FROM quartos").fetchone()[0] == 14
     assert len(calls) == 2
     assert calls[0] == (sys.executable, [sys.executable, "-m", "uvicorn", "backend.main:app",
@@ -63,3 +64,23 @@ def test_render_requires_admin_password(monkeypatch):
     monkeypatch.delenv("COLONIA_ADMIN_PASSWORD", raising=False)
     with pytest.raises(SystemExit, match="COLONIA_ADMIN_PASSWORD"):
         start.main()
+
+
+def test_start_adds_configured_login_when_another_admin_exists(tmp_path, monkeypatch):
+    from backend.database import initialize
+    from backend.security import hash_password
+
+    monkeypatch.setenv("COLONIA_DB", str(tmp_path / "existing.sqlite3"))
+    initialize()
+    with transaction(write=True) as db:
+        db.execute("INSERT INTO usuarios(nome,login,senha_hash) VALUES (?,?,?)",
+                   ("Recepção", "admin", hash_password("SenhaAntiga123!")))
+    monkeypatch.setenv("RENDER_EXTERNAL_URL", "https://coloniaweb-exemplo.onrender.com")
+    monkeypatch.setenv("COLONIA_ADMIN_LOGIN", "edusilva")
+    monkeypatch.setenv("COLONIA_ADMIN_NAME", "eduardo")
+    monkeypatch.setenv("COLONIA_ADMIN_PASSWORD", "SenhaTeste123!")
+    monkeypatch.setattr(start.os, "execv", lambda path, args: None)
+    start.main()
+    with transaction() as db:
+        assert db.execute("SELECT COUNT(*) FROM usuarios").fetchone()[0] == 2
+        assert db.execute("SELECT ativo FROM usuarios WHERE login='edusilva'").fetchone()[0] == 1

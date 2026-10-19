@@ -142,11 +142,11 @@ Esta opção publica uma demonstração sem VPS e sem migrar o banco. **Os dados
 
 1. Coloque **o conteúdo desta pasta `ColoniaWeb` na raiz de um repositório Git**, sem `data/`, `backups/`, `.venv/` ou `.env`. O arquivo `render.yaml` deve ficar na raiz do repositório. Pode ser privado, desde que você autorize o Render a acessá-lo.
 2. No Render, escolha **New → Blueprint**, conecte o repositório e confira que o serviço será criado com `plan: free` e `runtime: docker`.
-3. Quando o Render solicitar `COLONIA_ADMIN_PASSWORD`, informe uma senha exclusiva de **12 a 200 caracteres**. Ela será usada para recriar o administrador quando um banco vazio iniciar. O login configurado é `admin`; não há senha no código nem no `render.yaml`.
+3. Quando o Render solicitar `COLONIA_ADMIN_PASSWORD`, informe uma senha exclusiva de **12 a 200 caracteres**. Ela será usada para criar o usuário configurado quando ele ainda não existir. O login configurado é `edusilva`, com nome exibido `eduardo`; não há senha no código nem no `render.yaml`.
 4. Aguarde a implantação e abra o endereço `https://...onrender.com`. O Render fornece `RENDER_EXTERNAL_HOSTNAME` e `RENDER_EXTERNAL_URL`, que o projeto usa para aceitar o host e a origem do login. O cookie de sessão é `Secure`.
-5. Entre com `admin` e a senha escolhida. Verifique `/api/health`, os 14 quartos, o login e uma reserva fictícia. O primeiro acesso após inatividade pode demorar enquanto o serviço gratuito desperta.
+5. Entre com `edusilva` e a senha escolhida. Verifique `/api/health`, os 14 quartos, o login e uma reserva fictícia. O primeiro acesso após inatividade pode demorar enquanto o serviço gratuito desperta.
 
-O comando em `start.py` cria a conta de forma não interativa quando as variáveis de administrador estão presentes e usa a porta `PORT` indicada pelo Render. Fora do Render, o Docker continua podendo iniciar sem essas variáveis; nesse caso, crie o administrador manualmente com `docker exec -it coloniaweb python manage.py admin`.
+O comando em `start.py` cria a conta configurada de forma não interativa quando ela ainda não existe, sem apagar outras contas ou trocar senhas já existentes, e usa a porta `PORT` indicada pelo Render. Fora do Render, o Docker continua podendo iniciar sem essas variáveis; nesse caso, crie o administrador manualmente com `docker exec -it coloniaweb python manage.py admin`. Se o serviço já estava implantado, sincronize o Blueprint para aplicar o novo login; a senha secreta existente no Render será reutilizada.
 
 Para usar um domínio próprio ou outro proxy, configure `COLONIA_HOSTS` com os hosts permitidos e `COLONIA_PUBLIC_URL` com a origem HTTPS esperada no login. Não configure uma origem curinga. A implantação remota depende da sua conta no Render e **não foi executada neste ambiente**.
 

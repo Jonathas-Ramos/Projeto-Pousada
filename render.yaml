@@ -8,8 +8,8 @@ services:
       - key: COLONIA_SECURE_COOKIE
         value: "1"
       - key: COLONIA_ADMIN_LOGIN
-        value: admin
+        value: edusilva
       - key: COLONIA_ADMIN_NAME
-        value: "Recepção"
+        value: "eduardo"
       - key: COLONIA_ADMIN_PASSWORD
         sync: false
