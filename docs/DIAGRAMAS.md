@@ -11,6 +11,7 @@ erDiagram
     RESERVA ||--o{ PAGAMENTO : recebe
     USUARIO ||--o{ PAGAMENTO : registra
     USUARIO ||--o{ SESSAO : autentica
+    USUARIO ||--o| CODIGO_RECUPERACAO : recupera
     HOSPEDE {
         int id PK
         string nome
@@ -93,6 +94,10 @@ erDiagram
         int usuario_id FK
         string csrf
         int expira
+    }
+    CODIGO_RECUPERACAO {
+        int usuario_id PK,FK
+        string codigo_hash
     }
 ```
 
@@ -256,25 +261,24 @@ sequenceDiagram
     API-->>UI: Reserva atualizada
 ```
 
-## Sequência: primeiro acesso
+## Sequência: cadastro e recuperação de senha
 
 ```mermaid
 sequenceDiagram
-    actor Responsavel
+    actor Pessoa
     participant UI as Página de login
     participant API as FastAPI
     participant DB as SQLite
-    Responsavel->>UI: Abre o sistema
-    UI->>API: GET /api/auth/first-access
-    API->>DB: Verificar se existe usuário
-    DB-->>API: Banco sem usuários
-    API-->>UI: Exibir formulário inicial
-    Responsavel->>UI: Nome, usuário, senha e código exibido (demonstração)
-    UI->>API: POST /api/auth/first-access
-    API->>API: Validar origem, senha e código do modo ativo
-    API->>DB: BEGIN IMMEDIATE + verificar ausência de usuário
-    API->>DB: Inserir primeiro usuário, auditoria e sessão
-    API->>DB: COMMIT
-    API-->>UI: Cookie de sessão e usuário autenticado
-    Note over API,DB: Novas tentativas de primeiro acesso retornam 409
+    Pessoa->>UI: Abre a tela de login
+    Pessoa->>UI: Seleciona Não tenho cadastro
+    UI->>API: POST /api/auth/register
+    API->>DB: Gravar usuário e hash do código de recuperação
+    API-->>UI: Mostrar código uma única vez
+    Pessoa->>UI: Guarda o código e entra com usuário/senha
+    UI->>API: POST /api/auth/login
+    API-->>UI: Cookie de sessão
+    Pessoa->>UI: Seleciona Esqueci a senha
+    UI->>API: POST /api/auth/reset-password
+    API->>DB: Conferir código, trocar senha, revogar sessões e girar código
+    API-->>UI: Mostrar novo código uma única vez
 ```

@@ -13,23 +13,37 @@
       <label>Senha<input name="senha" type="password" autocomplete="current-password" required maxlength="200"></label>
       <p id="login-error" role="alert" class="error"></p>
       <button class="primary" type="submit">Entrar no sistema →</button>
-      <p class="help">Não tem acesso? Peça as credenciais ao responsável pelo sistema.</p>
+      <div class="auth-links"><button type="button" data-auth-view="reset">Esqueci a senha</button><button type="button" data-auth-view="register" id="register-link" hidden>Não tenho cadastro</button></div>
     </form>
-    <form id="setup-form" hidden>
-      <p class="eyebrow">PRIMEIRO ACESSO</p><h2>Crie sua conta</h2>
-      <p class="muted">Crie a primeira conta para entrar no sistema. Este cadastro aparece apenas enquanto não existe usuário.</p>
-      <p id="setup-demo-note" class="help" hidden>Modo de apresentação: digite o código <strong id="setup-demo-code"></strong>. Use somente dados fictícios.</p>
-      <p id="setup-unavailable" class="error" role="alert" hidden>O responsável ainda precisa configurar o código de ativação. Atualize esta página depois.</p>
-      <fieldset id="setup-fields">
-        <label>Seu nome<input name="nome" autocomplete="name" required minlength="3" maxlength="150"></label>
-        <label>Usuário<input name="login" autocomplete="username" required minlength="3" maxlength="100" pattern="[A-Za-z0-9._-]+" title="Use letras, números, ponto, hífen ou sublinhado."></label>
-        <label>Senha<input name="senha" type="password" autocomplete="new-password" required minlength="12" maxlength="200"></label>
-        <label>Confirme a senha<input name="confirmar_senha" type="password" autocomplete="new-password" required minlength="12" maxlength="200"></label>
-        <label>Código de ativação<input name="codigo" type="text" autocomplete="off" required maxlength="200"></label>
-        <p id="setup-error" role="alert" class="error"></p>
-        <button class="primary" type="submit">Criar conta e entrar →</button>
-      </fieldset>
+    <form id="register-form" hidden>
+      <p class="eyebrow">CRIAR CADASTRO</p><h2>Crie sua conta</h2>
+      <p class="muted">Escolha um usuário e uma senha para acessar o sistema.</p>
+      <label>Seu nome<input name="nome" autocomplete="name" required minlength="3" maxlength="150"></label>
+      <label>Usuário<input name="login" autocomplete="username" required minlength="3" maxlength="100" pattern="[A-Za-z0-9._-]+" title="Use letras, números, ponto, hífen ou sublinhado."></label>
+      <label>Senha<input name="senha" type="password" autocomplete="new-password" required minlength="12" maxlength="200"></label>
+      <label>Confirme a senha<input name="confirmar_senha" type="password" autocomplete="new-password" required minlength="12" maxlength="200"></label>
+      <p id="register-error" role="alert" class="error"></p>
+      <button class="primary" type="submit">Criar conta →</button>
+      <button class="auth-back" type="button" data-auth-view="login">Voltar ao login</button>
     </form>
+    <form id="reset-form" hidden>
+      <p class="eyebrow">RECUPERAR ACESSO</p><h2>Nova senha</h2>
+      <p class="muted">Informe o código de recuperação guardado quando sua conta foi criada.</p>
+      <label>Usuário<input name="login" autocomplete="username" required maxlength="100"></label>
+      <label>Código de recuperação<input name="codigo" autocomplete="off" required maxlength="100"></label>
+      <label>Nova senha<input name="nova_senha" type="password" autocomplete="new-password" required minlength="12" maxlength="200"></label>
+      <label>Confirme a nova senha<input name="confirmar_senha" type="password" autocomplete="new-password" required minlength="12" maxlength="200"></label>
+      <p id="reset-error" role="alert" class="error"></p>
+      <button class="primary" type="submit">Redefinir senha →</button>
+      <button class="auth-back" type="button" data-auth-view="login">Voltar ao login</button>
+    </form>
+    <section id="recovery-save" class="recovery-save" hidden aria-live="polite">
+      <p class="eyebrow">GUARDE ESTE CÓDIGO</p><h2 id="recovery-title">Conta criada</h2>
+      <p class="muted">Anote seu código de recuperação em um lugar seguro. Ele aparece apenas agora e será necessário se você esquecer a senha.</p>
+      <code id="recovery-code"></code>
+      <p class="help">Depois de usar o código para redefinir a senha, um novo código será gerado.</p>
+      <button class="primary" type="button" data-auth-view="login">Ir para o login →</button>
+    </section>
   </div>
 </section>
 <div id="shell" class="shell" hidden>

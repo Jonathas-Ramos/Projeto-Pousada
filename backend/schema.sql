@@ -6,6 +6,10 @@ CREATE TABLE IF NOT EXISTS sessoes (
  token_hash TEXT PRIMARY KEY, usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
  csrf TEXT NOT NULL, expira INTEGER NOT NULL
 );
+CREATE TABLE IF NOT EXISTS codigos_recuperacao (
+ usuario_id INTEGER PRIMARY KEY REFERENCES usuarios(id) ON DELETE CASCADE,
+ codigo_hash TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS tentativas_login (
  chave TEXT PRIMARY KEY, quantidade INTEGER NOT NULL, inicio INTEGER NOT NULL
 );

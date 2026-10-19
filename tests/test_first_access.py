@@ -46,11 +46,12 @@ def test_first_access_creates_account_and_closes_registration(setup_client):
         assert db.execute("SELECT acao FROM auditoria").fetchone()[0] == "CRIAR_PRIMEIRO_ACESSO"
 
 
-def test_login_page_offers_first_access_without_server_command(setup_client):
+def test_login_page_offers_registration_and_recovery(setup_client):
     response = setup_client.get("/")
     assert response.status_code == 200
-    assert 'id="setup-form"' in response.text
-    assert "Código de ativação" in response.text
+    assert 'id="login-form"' in response.text
+    assert 'id="register-form"' in response.text
+    assert 'id="reset-form"' in response.text
     assert "python manage.py admin" not in response.text
 
 
@@ -112,7 +113,7 @@ def test_demo_first_access_logout_and_login(tmp_path, monkeypatch):
         assert client.get("/api/auth/first-access").json() == {
             "required": True, "enabled": True, "demo_code": DEMO_SETUP_CODE,
         }
-        assert "Modo de apresentação" in client.get("/").text
+        assert "Não tenho cadastro" in client.get("/").text
         wrong = client.post("/api/auth/first-access", json={**FIRST_USER, "codigo": "errado"})
         assert wrong.status_code == 403
         assert client.post("/api/auth/first-access", json=FIRST_USER).status_code == 403

@@ -14,20 +14,14 @@ const badge = status => `<span class="badge ${esc(status)}">${esc(labels[status]
 const state = {user:null,page:'dashboard',offset:0,q:'',status:'',version:0};
 let toastTimer;
 function toast(message){$('#toast').textContent=message;$('#toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').hidden=true,6000);}
-function signedOut(){state.user=null;$('#shell').hidden=true;$('#login-screen').hidden=false;$('#view').replaceChildren();$('#modal').close();$('#login-form').hidden=false;$('#setup-form').hidden=true;$('#login-form input').focus();refreshFirstAccess();}
-async function refreshFirstAccess(){
-  try{
-    const status=await api('/auth/first-access');
-    if(state.user)return;
-    $('#login-form').hidden=status.required;
-    $('#setup-form').hidden=!status.required;
-    $('#setup-fields').disabled=!status.enabled;
-    $('#setup-unavailable').hidden=status.enabled;
-    $('#setup-demo-note').hidden=!status.demo_code;
-    $('#setup-demo-code').textContent=status.demo_code||'';
-    if(status.required&&status.enabled)$('#setup-form input').focus();
-  }catch{if(!state.user)$('#login-error').textContent='Não foi possível verificar o primeiro acesso. Atualize a página.';}
+function showAuth(view){
+  for(const id of ['login','register','reset'])$(`#${id}-form`).hidden=id!==view;
+  $('#recovery-save').hidden=view!=='recovery';
+  $(`#${view}-form input`)?.focus();
 }
+function showRecoveryCode(code,title){$('#recovery-code').textContent=code;$('#recovery-title').textContent=title;showAuth('recovery');}
+function signedOut(){state.user=null;$('#shell').hidden=true;$('#login-screen').hidden=false;$('#view').replaceChildren();$('#modal').close();showAuth('login');refreshRegistration();}
+async function refreshRegistration(){try{$('#register-link').hidden=!(await api('/auth/registration')).enabled;}catch{$('#register-link').hidden=true;}}
 async function api(path, options={}){
   const headers = {'Content-Type':'application/json',...options.headers};
   if(state.user?.csrf) headers['X-CSRF-Token']=state.user.csrf;
@@ -91,7 +85,7 @@ const views={
     const priceNote=standardLayout?`Diária: ${brl(100)} no 1º andar e ${brl(120)} no 2º.`:'As diárias preservadas deste banco aparecem em cada quarto.';
     return `<p class="help">${layoutNote} ${priceNote} Livre/Ocupado indica a situação agora; para datas futuras, consulte a disponibilidade. Clique em um quarto para alterar capacidade ou manutenção.</p><form id="availability" class="toolbar"><label>Entrada<input name="entrada" type="date" value="${plusDays(0)}" required></label><label>Saída<input name="saida" type="date" value="${plusDays(1)}" required></label><label>Pessoas<input name="pessoas" type="number" min="1" max="30" value="1" required></label><button>Consultar disponibilidade</button></form><div id="availability-result" aria-live="polite"></div>${floorMap}<section class="panel">${items.length?table(['Andar / quarto','Situação agora','Capacidade','Diária',''],items.map(r=>`<tr><td>${r.andar}º andar · Quarto ${r.numero}</td><td>${badge(r.situacao_atual)}</td><td>${r.capacidade} pessoas</td><td>${brl(r.valor_diaria)}</td><td><button data-edit="quartos" data-id="${r.id}">Editar</button></td></tr>`)):empty('Nenhum quarto cadastrado.')}</section>`;
   },
-  async conta(){const rows=await api('/auditoria?limit=20');return `<section class="panel account"><h2>Alterar senha</h2><p class="help">Use ao menos 12 caracteres. A troca encerra todas as sessões desta conta.</p><form id="password-form">${field('senha_atual','Senha atual','','password','required autocomplete="current-password"')}${field('nova_senha','Nova senha','','password','required minlength="12" maxlength="200" autocomplete="new-password"')}<p class="error" role="alert" id="password-error"></p><button class="primary">Atualizar senha</button></form></section><section class="panel"><div class="panel-head"><h2>Atividade recente</h2></div>${rows.length?table(['Ação','Registro','Usuário','Data UTC'],rows.map(r=>`<tr><td>${esc(r.acao)}</td><td>${esc(r.entidade)} #${r.registro_id}</td><td>${esc(r.usuario)}</td><td>${esc(r.criado_em)}</td></tr>`)):empty('Nenhuma atividade registrada.')}</section>`;}
+  async conta(){const rows=await api('/auditoria?limit=20');return `<section class="panel account"><h2>Alterar senha</h2><p class="help">Use ao menos 12 caracteres. A troca encerra todas as sessões desta conta.</p><form id="password-form">${field('senha_atual','Senha atual','','password','required autocomplete="current-password"')}${field('nova_senha','Nova senha','','password','required minlength="12" maxlength="200" autocomplete="new-password"')}<p class="error" role="alert" id="password-error"></p><button class="primary">Atualizar senha</button></form></section><section class="panel account"><h2>Código de recuperação</h2><p class="help">Se não tiver um código guardado, gere um aqui com sua senha atual. O código anterior deixará de funcionar.</p><form id="recovery-code-form">${field('senha_atual','Senha atual','','password','required autocomplete="current-password"')}<p class="error" role="alert" id="recovery-code-error"></p><button>Gerar novo código</button></form><p id="account-recovery-note" class="help" hidden>Anote agora; este código não será mostrado novamente.</p><code id="account-recovery-code" class="recovery-code" hidden></code></section><section class="panel"><div class="panel-head"><h2>Atividade recente</h2></div>${rows.length?table(['Ação','Registro','Usuário','Data UTC'],rows.map(r=>`<tr><td>${esc(r.acao)}</td><td>${esc(r.entidade)} #${r.registro_id}</td><td>${esc(r.usuario)}</td><td>${esc(r.criado_em)}</td></tr>`)):empty('Nenhuma atividade registrada.')}</section>`;}
 };
 async function reservationList(history){
   const status=state.status||(history?'FINALIZADA':'');
@@ -108,6 +102,7 @@ function bindView(){
   document.querySelectorAll('[data-delete]').forEach(b=>b.onclick=()=>safe(async()=>{if(!confirm('Excluir este registro? Se houver histórico, ele será desativado. Reservas ativas impedem a operação.'))return;const r=await send(`/${b.dataset.delete}/${b.dataset.id}`,'DELETE');toast(r.mensagem);await render();}));
   $('#availability')?.addEventListener('submit',event=>{event.preventDefault();safe(async()=>{const data=formData(event.currentTarget);const rows=await api('/quartos/disponiveis?'+new URLSearchParams(data));$('#availability-result').innerHTML=`<div class="quote">${rows.length?'<strong>Disponíveis neste período:</strong> '+rows.map(r=>`Prédio ${r.predio} / Quarto ${r.numero} (${brl(r.valor_diaria)}/noite)`).join(' · '):'Nenhum quarto disponível para este período e quantidade.'}</div>`;});});
   $('#password-form')?.addEventListener('submit',async event=>{event.preventDefault();const form=event.currentTarget,button=$('button',form);button.disabled=true;try{const result=await send('/auth/senha','PUT',formData(form));toast(result.mensagem);signedOut();}catch(error){$('#password-error').textContent=error.message;}finally{button.disabled=false;}});
+  $('#recovery-code-form')?.addEventListener('submit',async event=>{event.preventDefault();const form=event.currentTarget,button=$('button',form);button.disabled=true;$('#recovery-code-error').textContent='';try{const result=await send('/auth/recovery-code','POST',formData(form));$('#account-recovery-code').textContent=result.recovery_code;$('#account-recovery-code').hidden=false;$('#account-recovery-note').hidden=false;form.reset();}catch(error){$('#recovery-code-error').textContent=error.message;}finally{button.disabled=false;}});
 }
 async function safe(action){try{await action();}catch(error){toast(error.message);}}
 async function edit(entity,id){
@@ -161,7 +156,9 @@ async function detail(id){
   document.querySelectorAll('[data-refund]').forEach(b=>b.onclick=()=>{const paymentId=b.dataset.refund;openModal('Confirmar estorno realizado',formShell(textArea('motivo','Motivo do estorno','','required minlength="5" maxlength="300"')+check('confirmado','Confirmo que devolvi o valor externamente.',false)));$('[name=confirmado]').required=true;bindForm(async form=>{const d=formData(form);d.confirmado=d.confirmado==='on';await send(`/pagamentos/${paymentId}/estornar`,'POST',d);toast('Estorno registrado.');});});
 }
 $('#login-form').onsubmit=async event=>{event.preventDefault();const form=event.currentTarget,b=$('button',form),label=b.textContent;b.disabled=true;b.textContent='Entrando…';$('#login-error').textContent='';try{state.user=await send('/auth/login','POST',formData(form));form.reset();showApp();}catch(error){$('#login-error').textContent=error.message;}finally{b.disabled=false;b.textContent=label;}};
-$('#setup-form').onsubmit=async event=>{event.preventDefault();const form=event.currentTarget,b=$('button',form),label=b.textContent,data=formData(form);$('#setup-error').textContent='';if(data.senha!==data.confirmar_senha){$('#setup-error').textContent='As senhas não coincidem.';return;}b.disabled=true;b.textContent='Criando acesso…';try{state.user=await send('/auth/first-access','POST',data);form.reset();showApp();}catch(error){$('#setup-error').textContent=error.message;await refreshFirstAccess();}finally{b.disabled=false;b.textContent=label;}};
+document.querySelectorAll('[data-auth-view]').forEach(button=>button.onclick=()=>{if(button.dataset.authView==='reset')$('#reset-form [name=login]').value=$('#login-form [name=login]').value;showAuth(button.dataset.authView);});
+$('#register-form').onsubmit=async event=>{event.preventDefault();const form=event.currentTarget,b=$('button[type=submit]',form),label=b.textContent,data=formData(form);$('#register-error').textContent='';if(data.senha!==data.confirmar_senha){$('#register-error').textContent='As senhas não coincidem.';return;}b.disabled=true;b.textContent='Criando conta…';try{const result=await send('/auth/register','POST',data);form.reset();$('#login-form [name=login]').value=result.login;showRecoveryCode(result.recovery_code,'Conta criada');}catch(error){$('#register-error').textContent=error.message;}finally{b.disabled=false;b.textContent=label;}};
+$('#reset-form').onsubmit=async event=>{event.preventDefault();const form=event.currentTarget,b=$('button[type=submit]',form),label=b.textContent,data=formData(form);$('#reset-error').textContent='';if(data.nova_senha!==data.confirmar_senha){$('#reset-error').textContent='As senhas não coincidem.';return;}b.disabled=true;b.textContent='Redefinindo…';try{const result=await send('/auth/reset-password','POST',data);form.reset();$('#login-form [name=login]').value=data.login;showRecoveryCode(result.recovery_code,'Senha atualizada');}catch(error){$('#reset-error').textContent=error.message;}finally{b.disabled=false;b.textContent=label;}};
 $('#logout').onclick=()=>safe(async()=>{await send('/auth/logout','POST');signedOut();});
 function navigate(){state.page=location.hash.slice(1) in titles?location.hash.slice(1):'dashboard';state.offset=0;state.q='';state.status='';render();}
 window.addEventListener('hashchange',navigate);

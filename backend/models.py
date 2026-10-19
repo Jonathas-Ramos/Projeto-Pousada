@@ -130,6 +130,24 @@ class PrimeiroAcesso(DTO):
     codigo: str = Field(min_length=1, max_length=200)
 
 
+class Cadastro(DTO):
+    nome: str = Field(min_length=3, max_length=150)
+    login: str = Field(pattern=r"^[A-Za-z0-9._-]{3,100}$")
+    senha: str = Field(min_length=12, max_length=200)
+    confirmar_senha: str = Field(min_length=12, max_length=200)
+
+
+class RecuperarSenha(DTO):
+    login: str = Field(min_length=1, max_length=100)
+    codigo: str = Field(min_length=1, max_length=100)
+    nova_senha: str = Field(min_length=12, max_length=200)
+    confirmar_senha: str = Field(min_length=12, max_length=200)
+
+
+class GerarCodigoRecuperacao(DTO):
+    senha_atual: str = Field(min_length=1, max_length=200)
+
+
 class TrocaSenha(DTO):
     senha_atual: str = Field(min_length=1, max_length=200)
     nova_senha: str = Field(min_length=12, max_length=200)

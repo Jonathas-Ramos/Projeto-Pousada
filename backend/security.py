@@ -38,7 +38,90 @@ def issue_session(db, user_id, now):
     return token, csrf
 
 
+def registration_enabled():
+    return os.getenv("COLONIA_SELF_REGISTER") == "1"
+
+
+def new_recovery_code():
+    return secrets.token_urlsafe(24)
+
+
+def register_user(name, login, password, client_ip):
+    if not registration_enabled():
+        raise HTTPException(403, "Cadastro público desabilitado neste servidor.")
+    now = int(time.time())
+    key = digest("register-ip:" + client_ip)
+    login = login.lower()
+    with transaction(write=True) as db:
+        db.execute("DELETE FROM tentativas_login WHERE inicio<?", (now - 900,))
+        row = db.execute("SELECT quantidade FROM tentativas_login WHERE chave=?", (key,)).fetchone()
+        if row and row[0] >= 10:
+            raise HTTPException(429, "Muitos cadastros. Aguarde 15 minutos.")
+        if db.execute("SELECT 1 FROM usuarios WHERE login=?", (login,)).fetchone():
+            raise HTTPException(409, "Este usuário não está disponível.")
+        code = new_recovery_code()
+        cursor = db.execute("INSERT INTO usuarios(nome,login,senha_hash) VALUES (?,?,?)",
+                            (name, login, hash_password(password)))
+        db.execute("INSERT INTO codigos_recuperacao(usuario_id,codigo_hash) VALUES (?,?)",
+                   (cursor.lastrowid, digest(code)))
+        db.execute("INSERT INTO auditoria(usuario_id,acao,entidade,registro_id) VALUES (?,?,?,?)",
+                   (cursor.lastrowid, "CRIAR_USUARIO", "usuarios", cursor.lastrowid))
+        db.execute("""INSERT INTO tentativas_login(chave,quantidade,inicio) VALUES (?,1,?)
+            ON CONFLICT(chave) DO UPDATE SET quantidade=quantidade+1""", (key, now))
+    return {"nome": name, "login": login, "recovery_code": code}
+
+
+def reset_password(login, code, new_password, client_ip):
+    now = int(time.time())
+    login = login.lower()
+    keys = [digest("recovery-ip:" + client_ip), digest("recovery-login:" + login)]
+    outcome = None
+    with transaction(write=True) as db:
+        db.execute("DELETE FROM tentativas_login WHERE inicio<?", (now - 900,))
+        for key in keys:
+            row = db.execute("SELECT quantidade FROM tentativas_login WHERE chave=?", (key,)).fetchone()
+            if row and row[0] >= 10:
+                raise HTTPException(429, "Muitas tentativas. Aguarde 15 minutos.")
+        row = db.execute("""SELECT u.id,c.codigo_hash FROM usuarios u
+            LEFT JOIN codigos_recuperacao c ON c.usuario_id=u.id
+            WHERE u.login=? AND u.ativo=1""", (login,)).fetchone()
+        valid = hmac.compare_digest(digest(code), row["codigo_hash"] if row and row["codigo_hash"] else "0" * 64)
+        if not valid:
+            for key in keys:
+                db.execute("""INSERT INTO tentativas_login(chave,quantidade,inicio) VALUES (?,1,?)
+                    ON CONFLICT(chave) DO UPDATE SET quantidade=quantidade+1""", (key, now))
+            outcome = (400, "Usuário ou código de recuperação inválido.")
+        else:
+            next_code = new_recovery_code()
+            db.execute("UPDATE usuarios SET senha_hash=? WHERE id=?", (hash_password(new_password), row["id"]))
+            db.execute("UPDATE codigos_recuperacao SET codigo_hash=? WHERE usuario_id=?",
+                       (digest(next_code), row["id"]))
+            db.execute("DELETE FROM sessoes WHERE usuario_id=?", (row["id"],))
+            db.execute("INSERT INTO auditoria(usuario_id,acao,entidade,registro_id) VALUES (?,?,?,?)",
+                       (row["id"], "RECUPERAR_SENHA", "usuarios", row["id"]))
+            for key in keys:
+                db.execute("DELETE FROM tentativas_login WHERE chave=?", (key,))
+    if outcome:
+        raise HTTPException(*outcome)
+    return {"mensagem": "Senha atualizada. Entre com a nova senha.", "recovery_code": next_code}
+
+
+def rotate_recovery_code(user_id, current_password):
+    with transaction(write=True) as db:
+        row = db.execute("SELECT senha_hash FROM usuarios WHERE id=? AND ativo=1", (user_id,)).fetchone()
+        if not row or not verify_password(current_password, row["senha_hash"]):
+            raise HTTPException(400, "Senha atual incorreta.")
+        code = new_recovery_code()
+        db.execute("""INSERT INTO codigos_recuperacao(usuario_id,codigo_hash) VALUES (?,?)
+            ON CONFLICT(usuario_id) DO UPDATE SET codigo_hash=excluded.codigo_hash""", (user_id, digest(code)))
+        db.execute("INSERT INTO auditoria(usuario_id,acao,entidade,registro_id) VALUES (?,?,?,?)",
+                   (user_id, "GERAR_CODIGO_RECUPERACAO", "usuarios", user_id))
+    return {"recovery_code": code}
+
+
 def first_access_status():
+    if registration_enabled():
+        return {"required": False, "enabled": False}
     with transaction() as db:
         required = db.execute("SELECT 1 FROM usuarios LIMIT 1").fetchone() is None
     demo = os.getenv("COLONIA_DEMO_MODE") == "1"
@@ -50,6 +133,8 @@ def first_access_status():
 
 
 def create_first_user(name, login, password, code, client_ip):
+    if registration_enabled():
+        raise HTTPException(410, "Use o cadastro de usuário na página de login.")
     demo = os.getenv("COLONIA_DEMO_MODE") == "1"
     configured_code = DEMO_SETUP_CODE if demo else os.getenv("COLONIA_SETUP_CODE", "").strip()
     if not demo and not 16 <= len(configured_code) <= 200:

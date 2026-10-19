@@ -1,4 +1,4 @@
-"""Inicialização do serviço web com primeiro acesso na interface."""
+"""Inicialização do serviço web e compatibilidade com provisionamento antigo."""
 import os
 import sys
 
@@ -7,11 +7,12 @@ from manage import create_admin
 
 
 def main():
+    self_register = os.getenv("COLONIA_SELF_REGISTER") == "1"
     demo = os.getenv("COLONIA_DEMO_MODE") == "1"
     setup_code = os.getenv("COLONIA_SETUP_CODE", "").strip()
-    if not demo and setup_code and not 16 <= len(setup_code) <= 200:
+    if not self_register and not demo and setup_code and not 16 <= len(setup_code) <= 200:
         raise SystemExit("COLONIA_SETUP_CODE deve conter de 16 a 200 caracteres.")
-    if not demo and not setup_code:
+    if not self_register and not demo and not setup_code:
         # Mantém o acesso existente até o responsável configurar o novo código no Render.
         password = os.getenv("COLONIA_ADMIN_PASSWORD")
         if os.getenv("RENDER_EXTERNAL_URL") and not password:

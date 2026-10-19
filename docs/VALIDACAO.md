@@ -42,6 +42,12 @@ O `render.yaml` agora ativa `COLONIA_DEMO_MODE=1`, com código público `APRESEN
 
 No Edge headless, com banco isolado e viewport de **360 px**, o código de apresentação apareceu corretamente; cadastro, logout e login foram concluídos sem erros JavaScript ou rolagem horizontal. A captura da tela foi inspecionada. O serviço no Render ainda não foi verificado por este teste local. O código público não protege o primeiro cadastro: utilizar apenas dados fictícios.
 
+### Atualização: login, cadastro e recuperação completos
+
+A tela inicial voltou a mostrar sempre o login, agora com **Esqueci a senha** e **Não tenho cadastro**. O cadastro público é habilitado por `COLONIA_SELF_REGISTER=1` no Render e no `iniciar.bat`; o fluxo antigo de primeiro acesso fica indisponível nesse modo. Foi adicionada a tabela `codigos_recuperacao` sem alterar a tabela de usuários existente. O código individual é gerado aleatoriamente, guardado apenas como hash e apresentado uma vez; após redefinir a senha, as sessões antigas são revogadas e o código é substituído.
+
+A suíte completa passou com **44 casos**. Os testes cobrem múltiplos cadastros, duplicidade, origem, login, logout, código inválido, limite de tentativas, confirmação de senha, revogação de sessão e geração de código para conta antiga. `node --check frontend/app.js` e `git diff --check` passaram. No Edge headless a **360 px**, foram verificados visualmente login inicial, cadastro, exibição do código, logout, recuperação e login com nova senha, sem erro JavaScript ou rolagem horizontal. A implantação no Render ainda não foi verificada neste teste local.
+
 ## Navegador e apresentação
 
 Fluxo real executado no Edge headless: login, simular disponibilidade, criar reserva com acompanhante, registrar pagamento, check-in, check-out, criar hóspede e consultar quartos disponíveis. Nenhum erro JavaScript capturado.

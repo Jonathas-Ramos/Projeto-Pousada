@@ -129,3 +129,20 @@ def test_start_demo_needs_no_secret_or_terminal_account(tmp_path, monkeypatch):
         assert db.execute("SELECT COUNT(*) FROM usuarios").fetchone()[0] == 0
         assert db.execute("SELECT COUNT(*) FROM quartos").fetchone()[0] == 14
     assert calls[0][-4:] == ["--port", "10000", "--workers", "1"]
+
+
+def test_start_public_registration_ignores_old_credentials(tmp_path, monkeypatch):
+    monkeypatch.setenv("COLONIA_DB", str(tmp_path / "public-register.sqlite3"))
+    monkeypatch.setenv("RENDER_EXTERNAL_URL", "https://coloniaweb-exemplo.onrender.com")
+    monkeypatch.setenv("COLONIA_SELF_REGISTER", "1")
+    monkeypatch.setenv("COLONIA_DEMO_MODE", "1")
+    monkeypatch.setenv("COLONIA_SETUP_CODE", "codigo-antigo-curto")
+    monkeypatch.setenv("COLONIA_ADMIN_LOGIN", "edusilva")
+    monkeypatch.setenv("COLONIA_ADMIN_NAME", "eduardo")
+    monkeypatch.setenv("COLONIA_ADMIN_PASSWORD", "SenhaAntiga123!")
+    monkeypatch.setenv("PORT", "10000")
+    monkeypatch.setattr(start.os, "execv", lambda path, args: None)
+    start.main()
+    initialize()
+    with transaction() as db:
+        assert db.execute("SELECT COUNT(*) FROM usuarios").fetchone()[0] == 0

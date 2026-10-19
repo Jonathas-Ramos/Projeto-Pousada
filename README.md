@@ -6,8 +6,8 @@ Sistema web de gestão de hospedagens, adaptado do conceito do Sistema Colônia 
 
 1. Tenha **Python 3.13** instalado e disponível no comando `python`.
 2. Execute **`iniciar.bat`**. Na primeira execução, é necessário acesso à internet para instalar as dependências em `.venv`.
-3. Crie o usuário da recepção quando solicitado. Escolha uma senha de pelo menos 12 caracteres. Não há senha padrão.
-4. Acesse **http://127.0.0.1:8000** e entre com sua conta.
+3. Acesse **http://127.0.0.1:8000**. A tela inicial mostra usuário, senha, **Esqueci a senha** e **Não tenho cadastro**.
+4. Em **Não tenho cadastro**, informe nome, usuário e senha de pelo menos 12 caracteres. Guarde o código de recuperação mostrado uma única vez; depois, entre com seu novo usuário e senha. Não há senha padrão.
 5. Os 14 quartos já aparecem em **Quartos e mapa**. Cadastre um hóspede e crie sua primeira reserva. A diária é R$ 100,00 no 1º andar e R$ 120,00 no 2º.
 
 Mantenha a janela do servidor aberta enquanto usa o sistema. `Ctrl+C` encerra o servidor. Os dados permanecem em `data/colonia.sqlite3`.
@@ -29,15 +29,15 @@ python -m venv .venv
 # Linux/macOS: source .venv/bin/activate
 # Windows PowerShell: .\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
-python manage.py admin
+export COLONIA_SELF_REGISTER=1
 python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000
 ```
 
-No Windows, também é possível usar diretamente `.venv\Scripts\python.exe` sem ativar o ambiente.
+No Windows, também é possível usar diretamente `.venv\Scripts\python.exe` sem ativar o ambiente. Se iniciar manualmente pelo PowerShell, defina `$env:COLONIA_SELF_REGISTER='1'` antes do comando do servidor; `iniciar.bat` já faz isso.
 
 ## Funcionalidades
 
-- Primeiro acesso pela página com código de apresentação no Render ou código secreto fora do modo de demonstração, login, logout, expiração de sessão em oito horas e troca de senha.
+- Tela de login como entrada principal; cadastro de usuários pela opção **Não tenho cadastro**, login, logout, recuperação de senha com código individual e troca de senha autenticada.
 - CRUD de hóspedes, endereço individual e reservas; consulta e edição de capacidade/condição dos quartos da planta fixa.
 - Pesquisa de hóspedes por nome/CPF, listagem paginada e consulta por ID.
 - CPF validado, normalizado e único. Listas exibem CPF mascarado.
@@ -142,11 +142,11 @@ Esta opção publica uma demonstração sem VPS e sem migrar o banco. **Os dados
 
 1. Coloque **o conteúdo desta pasta `ColoniaWeb` na raiz de um repositório Git**, sem `data/`, `backups/`, `.venv/` ou `.env`. O arquivo `render.yaml` deve ficar na raiz do repositório. Pode ser privado, desde que você autorize o Render a acessá-lo.
 2. No Render, escolha **New → Blueprint**, conecte o repositório e confira que o serviço será criado com `plan: free` e `runtime: docker`.
-3. O `render.yaml` já define `COLONIA_DEMO_MODE=1`: **não é preciso configurar código secreto nem criar usuário pelo terminal**. Em um serviço existente, confira em **Environment** que `COLONIA_DEMO_MODE` está definido como `1`; se o serviço não estiver sincronizado com o Blueprint, adicione essa variável manualmente.
+3. O `render.yaml` já define `COLONIA_SELF_REGISTER=1`: **não é preciso configurar código de ativação nem criar usuário pelo terminal**. Em um serviço existente, confira em **Environment** que `COLONIA_SELF_REGISTER` está definido como `1`; se o serviço não estiver sincronizado com o Blueprint, adicione essa variável manualmente. A variável antiga `COLONIA_DEMO_MODE` pode ser removida depois.
 4. Aguarde a implantação e abra o endereço `https://...onrender.com`. O Render fornece `RENDER_EXTERNAL_HOSTNAME` e `RENDER_EXTERNAL_URL`, que o projeto usa para aceitar o host e a origem do primeiro acesso e do login. O cookie de sessão é `Secure`.
-5. Se o banco ainda não possui usuário, a página mostra **Crie sua conta** e exibe o código de demonstração **`APRESENTACAO2026`**. Informe nome, usuário e uma senha própria de **12 a 200 caracteres**; digite o código exibido e clique em **Criar conta e entrar**. Use **Encerrar sessão** para sair e entre novamente com o usuário e a senha que acabou de escolher. Confira `/api/health`, os 14 quartos e uma reserva fictícia. O primeiro acesso após inatividade pode demorar enquanto o serviço gratuito desperta.
+5. A página abre sempre no **login**. Clique em **Não tenho cadastro**, crie uma conta e **guarde o código de recuperação** apresentado. Volte ao login e entre com usuário e senha. Para testar **Esqueci a senha**, informe usuário, código de recuperação e nova senha; anote o novo código que substituirá o anterior. Use **Encerrar sessão** para sair. Confira `/api/health`, os 14 quartos e uma reserva fictícia. O primeiro acesso após inatividade pode demorar enquanto o serviço gratuito desperta.
 
-O código de demonstração é **público e não protege o primeiro cadastro**: qualquer visitante que chegar antes pode criar essa primeira conta. Use somente dados fictícios e desative `COLONIA_DEMO_MODE` após a apresentação; para uma instalação fora da demonstração, configure `COLONIA_SETUP_CODE` secreto de 16 a 200 caracteres no ambiente do servidor. O modo de demonstração tem prioridade sobre `COLONIA_SETUP_CODE` e ignora o antigo provisionamento `COLONIA_ADMIN_*`, mesmo que essas variáveis ainda estejam no Render. Um banco que **já contém usuário** não exibe a criação do primeiro acesso: use a conta existente. A mudança não apaga usuários nem redefine senhas. No plano gratuito, o banco SQLite é efêmero; se ele for recriado vazio, será necessário cadastrar novamente a primeira conta. Fora do Render, a criação manual continua disponível com `docker exec -it coloniaweb python manage.py admin`.
+O cadastro público do Render permite que **qualquer visitante crie uma conta com acesso de recepção a todos os dados**; use somente dados fictícios e desative `COLONIA_SELF_REGISTER` após a apresentação. A mudança não apaga usuários nem redefine senhas. Contas antigas podem entrar normalmente; para habilitar **Esqueci a senha** nelas, entre com a conta e gere um código em **Minha conta → Código de recuperação**. Sem senha e sem código guardado, a recuperação automática não é possível; será necessária intervenção do responsável. No plano gratuito, o banco SQLite é efêmero; se for recriado vazio, será preciso cadastrar as contas novamente.
 
 Para usar um domínio próprio ou outro proxy, configure `COLONIA_HOSTS` com os hosts permitidos e `COLONIA_PUBLIC_URL` com a origem HTTPS esperada no login. Não configure uma origem curinga. A implantação remota depende da sua conta no Render e **não foi executada neste ambiente**.
 

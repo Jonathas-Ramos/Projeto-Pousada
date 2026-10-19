@@ -17,7 +17,7 @@ from . import clock, models
 from .config import allowed_hosts, expected_origin
 from .database import initialize, transaction
 from .repository import Repository, mask_cpf, money, reservation_details, serialize_room
-from .security import COOKIE, SESSION_SECONDS, authenticate, create_first_user, digest, first_access_status, hash_password, require_user, secure_cookie, verify_password
+from .security import COOKIE, SESSION_SECONDS, authenticate, create_first_user, digest, first_access_status, hash_password, register_user, registration_enabled, require_user, reset_password, rotate_recovery_code, secure_cookie, verify_password
 from .services import CatalogService, ReservationService
 
 
@@ -97,6 +97,37 @@ def login(dto: models.Login, request: Request, response: Response):
     user, token = authenticate(dto.login, dto.senha, request.client.host if request.client else "local")
     response.set_cookie(COOKIE, token, max_age=SESSION_SECONDS, httponly=True, secure=secure_cookie(), samesite="strict")
     return user
+
+
+@app.get("/api/auth/registration", tags=["Autenticação"])
+def registration_status():
+    return {"enabled": registration_enabled()}
+
+
+@app.post("/api/auth/register", status_code=201, tags=["Autenticação"])
+def register(dto: models.Cadastro, request: Request):
+    origin = request.headers.get("origin")
+    if origin and origin != expected_origin(str(request.base_url)):
+        raise HTTPException(403, "Origem inválida.")
+    if dto.senha != dto.confirmar_senha:
+        raise HTTPException(400, "As senhas não coincidem.")
+    return register_user(dto.nome, dto.login, dto.senha, request.client.host if request.client else "local")
+
+
+@app.post("/api/auth/reset-password", tags=["Autenticação"])
+def recover_password(dto: models.RecuperarSenha, request: Request):
+    origin = request.headers.get("origin")
+    if origin and origin != expected_origin(str(request.base_url)):
+        raise HTTPException(403, "Origem inválida.")
+    if dto.nova_senha != dto.confirmar_senha:
+        raise HTTPException(400, "As senhas não coincidem.")
+    return reset_password(dto.login, dto.codigo, dto.nova_senha,
+                          request.client.host if request.client else "local")
+
+
+@app.post("/api/auth/recovery-code", tags=["Autenticação"])
+def generate_recovery_code(dto: models.GerarCodigoRecuperacao, user: User):
+    return rotate_recovery_code(user["id"], dto.senha_atual)
 
 
 @app.get("/api/auth/first-access", tags=["Autenticação"])
