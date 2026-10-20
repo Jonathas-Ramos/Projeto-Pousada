@@ -13,6 +13,8 @@ COOKIE = "colonia_session"
 ITERATIONS = 600_000
 SESSION_SECONDS = 8 * 60 * 60
 DEMO_SETUP_CODE = "APRESENTACAO2026"
+INCREMENT_LOGIN_ATTEMPT_SQL = """INSERT INTO tentativas_login(chave,quantidade,inicio) VALUES (?,1,?)
+    ON CONFLICT(chave) DO UPDATE SET quantidade=tentativas_login.quantidade+1"""
 
 
 def digest(value):
@@ -66,8 +68,7 @@ def register_user(name, login, password, client_ip):
                    (cursor.lastrowid, digest(code)))
         db.execute("INSERT INTO auditoria(usuario_id,acao,entidade,registro_id) VALUES (?,?,?,?)",
                    (cursor.lastrowid, "CRIAR_USUARIO", "usuarios", cursor.lastrowid))
-        db.execute("""INSERT INTO tentativas_login(chave,quantidade,inicio) VALUES (?,1,?)
-            ON CONFLICT(chave) DO UPDATE SET quantidade=quantidade+1""", (key, now))
+        db.execute(INCREMENT_LOGIN_ATTEMPT_SQL, (key, now))
     return {"nome": name, "login": login, "recovery_code": code}
 
 
@@ -88,8 +89,7 @@ def reset_password(login, code, new_password, client_ip):
         valid = hmac.compare_digest(digest(code), row["codigo_hash"] if row and row["codigo_hash"] else "0" * 64)
         if not valid:
             for key in keys:
-                db.execute("""INSERT INTO tentativas_login(chave,quantidade,inicio) VALUES (?,1,?)
-                    ON CONFLICT(chave) DO UPDATE SET quantidade=quantidade+1""", (key, now))
+                db.execute(INCREMENT_LOGIN_ATTEMPT_SQL, (key, now))
             outcome = (400, "Usuário ou código de recuperação inválido.")
         else:
             next_code = new_recovery_code()
@@ -150,8 +150,7 @@ def create_first_user(name, login, password, code, client_ip):
         if row and row["quantidade"] >= 10:
             outcome = (429, "Muitas tentativas. Aguarde 15 minutos.")
         elif not hmac.compare_digest(code.encode("utf-8"), configured_code.encode("utf-8")):
-            db.execute("""INSERT INTO tentativas_login(chave,quantidade,inicio) VALUES (?,1,?)
-                ON CONFLICT(chave) DO UPDATE SET quantidade=quantidade+1""", (key, now))
+            db.execute(INCREMENT_LOGIN_ATTEMPT_SQL, (key, now))
             outcome = (403, "Código de ativação inválido.")
         else:
             login = login.lower()
@@ -185,8 +184,7 @@ def authenticate(login, password, client_ip):
             valid = False
         if not valid:
             for key in keys:
-                db.execute("""INSERT INTO tentativas_login(chave,quantidade,inicio) VALUES (?,1,?)
-                    ON CONFLICT(chave) DO UPDATE SET quantidade=quantidade+1""", (key, now))
+                db.execute(INCREMENT_LOGIN_ATTEMPT_SQL, (key, now))
         else:
             token, csrf = issue_session(db, user["id"], now)
     if not valid:

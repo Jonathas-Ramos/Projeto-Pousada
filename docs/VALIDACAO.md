@@ -54,6 +54,10 @@ Com `DATABASE_URL`, a aplicação passa a usar PostgreSQL com esquema próprio, 
 
 O driver `psycopg` 3.3.6 foi instalado no ambiente local de teste. A suíte completa passou com **49 casos** (44 existentes + 5 testes unitários da camada PostgreSQL), usando bancos SQLite temporários e um conector PostgreSQL simulado. O arquivo `schema_postgres.sql` foi analisado pelo parser PostgreSQL (`pglast`: 13 instruções válidas). **Não houve teste de integração contra um servidor PostgreSQL real nem publicação no Render**, pois não havia uma instância de banco disponível neste ambiente. Esses dois testes devem ser feitos após a sincronização do Blueprint.
 
+### Correção após o primeiro deploy PostgreSQL
+
+O log do Render mostrou `psycopg.errors.AmbiguousColumn` durante o cadastro: no UPSERT do contador de tentativas, `quantidade=quantidade+1` era ambíguo no PostgreSQL. As quatro ocorrências passaram a usar uma consulta única com `quantidade=tentativas_login.quantidade+1`, compatível também com SQLite. A suíte completa passou com **50 casos**; o teste adicional verifica duas inserções na mesma chave. O cadastro remoto precisa ser repetido após publicar esta correção.
+
 ## Navegador e apresentação
 
 Fluxo real executado no Edge headless: login, simular disponibilidade, criar reserva com acompanhante, registrar pagamento, check-in, check-out, criar hóspede e consultar quartos disponíveis. Nenhum erro JavaScript capturado.
