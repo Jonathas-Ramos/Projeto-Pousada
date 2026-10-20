@@ -164,6 +164,16 @@ O cadastro público do Render permite que **qualquer visitante crie uma conta co
 
 Para usar um domínio próprio ou outro proxy, configure `COLONIA_HOSTS` com os hosts permitidos e `COLONIA_PUBLIC_URL` com a origem HTTPS esperada no login. Não configure uma origem curinga. A implantação remota depende da sua conta no Render e **não foi executada neste ambiente**.
 
+Diagrama de Relacionamento:
+<img width="1365" height="925" alt="image" src="https://github.com/user-attachments/assets/5093c5ad-3e4e-4188-a374-5cbaf9e5fd2e" />
+
+Diagrama de Sequencia:
+<img width="1211" height="925" alt="image" src="https://github.com/user-attachments/assets/2a89c169-2952-4b96-a084-202c38ee95ef" />
+
+Diagrama de Classes:
+<img width="1167" height="927" alt="image" src="https://github.com/user-attachments/assets/283e6106-5ebe-4104-964d-b2dfe3a96720" />
+
+
 ## Relação com o Sistema Colônia original
 
 O original Tkinter e seus arquivos TXT permanecem no local anterior. Foram reaproveitados o domínio de hospedagem, prédios/quartos, entrada/saída e organização da recepção. A nova regra de preço é por andar/noite; não usa a tabela antiga por prédio/quantidade. Não há importação automática dos TXT: eles não possuem datas e acompanhantes suficientes para uma migração fiel. Uma instalação nova começa com os 14 quartos; hóspedes e reservas começam vazios, salvo os exemplos que você optar por carregar.
