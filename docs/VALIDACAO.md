@@ -58,6 +58,10 @@ O driver `psycopg` 3.3.6 foi instalado no ambiente local de teste. A suíte comp
 
 O log do Render mostrou `psycopg.errors.AmbiguousColumn` durante o cadastro: no UPSERT do contador de tentativas, `quantidade=quantidade+1` era ambíguo no PostgreSQL. As quatro ocorrências passaram a usar uma consulta única com `quantidade=tentativas_login.quantidade+1`, compatível também com SQLite. A suíte completa passou com **50 casos**; o teste adicional verifica duas inserções na mesma chave. O cadastro remoto precisa ser repetido após publicar esta correção.
 
+### Correção do cadastro de hóspedes no PostgreSQL
+
+O log do Render mostrou `psycopg.errors.DatatypeMismatch` ao inserir um hóspede: a coluna `ativo` é `INTEGER`, mas o formulário enviava um booleano. A camada PostgreSQL agora converte parâmetros booleanos para `1` ou `0` antes de executar comandos, inclusive em inserções múltiplas. O esquema permanece compatível com as consultas existentes, que usam `ativo=1`. O teste do adaptador cobre essa conversão. A suíte completa passou com **51 casos** e um aviso de depreciação de dependência. A criação de hóspedes no serviço remoto deve ser repetida após publicar a correção; ainda não houve teste contra o PostgreSQL real nesta etapa.
+
 ## Navegador e apresentação
 
 Fluxo real executado no Edge headless: login, simular disponibilidade, criar reserva com acompanhante, registrar pagamento, check-in, check-out, criar hóspede e consultar quartos disponíveis. Nenhum erro JavaScript capturado.

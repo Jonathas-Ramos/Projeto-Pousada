@@ -14,6 +14,12 @@ IDENTITY_TABLES = {"usuarios", "hospedes", "enderecos", "quartos", "reservas",
                    "acompanhantes", "pagamentos", "auditoria"}
 INSERT_TABLE = re.compile(r"^\s*INSERT\s+INTO\s+([a-z_]+)\b", re.IGNORECASE)
 
+
+def postgres_params(params):
+    """O esquema legado representa flags como INTEGER 0/1, não BOOLEAN."""
+    return tuple(int(value) if isinstance(value, bool) else value for value in params)
+
+
 try:
     import psycopg
     PostgresIntegrityError = psycopg.IntegrityError
@@ -69,13 +75,14 @@ class PostgresConnection:
         match = INSERT_TABLE.match(sql)
         returns_id = bool(match and match.group(1).lower() in IDENTITY_TABLES and
                           "RETURNING" not in sql.upper())
-        cursor = self.connection.execute(sql.replace("?", "%s") + (" RETURNING id" if returns_id else ""), params)
+        cursor = self.connection.execute(sql.replace("?", "%s") + (" RETURNING id" if returns_id else ""),
+                                         postgres_params(params))
         lastrowid = cursor.fetchone()[0] if returns_id else None
         return PostgresCursor(cursor, lastrowid)
 
     def executemany(self, sql, params):
         with self.connection.cursor() as cursor:
-            cursor.executemany(sql.replace("?", "%s"), params)
+            cursor.executemany(sql.replace("?", "%s"), (postgres_params(row) for row in params))
 
     def commit(self):
         self.connection.commit()

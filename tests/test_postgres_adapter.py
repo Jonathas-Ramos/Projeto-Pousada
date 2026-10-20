@@ -63,6 +63,14 @@ def test_postgres_adapter_translates_parameters_and_returns_insert_id():
     assert raw.calls[1][0].endswith("VALUES (%s,%s,%s) RETURNING id")
 
 
+def test_postgres_adapter_converts_legacy_integer_flags():
+    raw = FakeConnection()
+    db = database.PostgresConnection(raw)
+    db.execute("UPDATE quartos SET ativo=?, acessivel=? WHERE id=?", (True, False, 3))
+    assert raw.calls[0] == ("UPDATE quartos SET ativo=%s, acessivel=%s WHERE id=%s", (1, 0, 3))
+    assert database.postgres_params(("2026-10-19", 7, True)) == ("2026-10-19", 7, 1)
+
+
 def test_postgres_write_transaction_serializes_and_closes(monkeypatch):
     raw = FakeConnection()
     monkeypatch.setattr(database, "connect", lambda: database.PostgresConnection(raw))
