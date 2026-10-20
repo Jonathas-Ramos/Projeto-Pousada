@@ -150,18 +150,6 @@ O `render.yaml` agora declara um serviço web e um banco `coloniaweb-db` no plan
 
 O [Postgres gratuito do Render](https://render.com/docs/free) expira **30 dias** após a criação, tem limite de 1 GB e não oferece backups gerenciados. Após expirar, há prazo de 14 dias para mudar para um plano pago; depois os dados podem ser excluídos. Planeje isso antes da apresentação. A URL interna do banco só funciona entre serviços na mesma conta/região.
 
-### Render antigo: demonstração acadêmica descartável com SQLite
-
-Se você **não** configurar `DATABASE_URL`, ainda é possível publicar só o serviço web com SQLite, sem VPS e sem migrar o banco. **Os dados cadastrados no Render podem desaparecer** quando a instância gratuita reinicia ou é atualizada; a cópia local continua sendo a principal. Use apenas dados fictícios. O plano gratuito não fornece disco persistente para SQLite. Consulte os [limites atuais do Render](https://render.com/docs/free) antes de publicar.
-
-1. Coloque **o conteúdo desta pasta `ColoniaWeb` na raiz de um repositório Git**, sem `data/`, `backups/`, `.venv/` ou `.env`. O arquivo `render.yaml` deve ficar na raiz do repositório. Pode ser privado, desde que você autorize o Render a acessá-lo.
-2. Para manter SQLite no Render, crie somente um **Web Service** manual a partir do repositório; não sincronize o novo Blueprint com banco. Configure `runtime: docker` e `plan: free`.
-3. O `render.yaml` já define `COLONIA_SELF_REGISTER=1`: **não é preciso configurar código de ativação nem criar usuário pelo terminal**. Em um serviço existente, confira em **Environment** que `COLONIA_SELF_REGISTER` está definido como `1`; se o serviço não estiver sincronizado com o Blueprint, adicione essa variável manualmente. A variável antiga `COLONIA_DEMO_MODE` pode ser removida depois.
-4. Aguarde a implantação e abra o endereço `https://...onrender.com`. O Render fornece `RENDER_EXTERNAL_HOSTNAME` e `RENDER_EXTERNAL_URL`, que o projeto usa para aceitar o host e a origem do primeiro acesso e do login. O cookie de sessão é `Secure`.
-5. A página abre sempre no **login**. Clique em **Não tenho cadastro**, crie uma conta e **guarde o código de recuperação** apresentado. Volte ao login e entre com usuário e senha. Para testar **Esqueci a senha**, informe usuário, código de recuperação e nova senha; anote o novo código que substituirá o anterior. Use **Encerrar sessão** para sair. Confira `/api/health`, os 14 quartos e uma reserva fictícia. O primeiro acesso após inatividade pode demorar enquanto o serviço gratuito desperta.
-
-O cadastro público do Render permite que **qualquer visitante crie uma conta com acesso de recepção a todos os dados**; use somente dados fictícios e desative `COLONIA_SELF_REGISTER` após a apresentação. A mudança não apaga usuários nem redefine senhas. Contas antigas podem entrar normalmente; para habilitar **Esqueci a senha** nelas, entre com a conta e gere um código em **Minha conta → Código de recuperação**. Sem senha e sem código guardado, a recuperação automática não é possível; será necessária intervenção do responsável. No plano gratuito, o banco SQLite é efêmero; se for recriado vazio, será preciso cadastrar as contas novamente.
-
 Para usar um domínio próprio ou outro proxy, configure `COLONIA_HOSTS` com os hosts permitidos e `COLONIA_PUBLIC_URL` com a origem HTTPS esperada no login. Não configure uma origem curinga. A implantação remota depende da sua conta no Render e **não foi executada neste ambiente**.
 
 Diagrama de Relacionamento:
