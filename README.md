@@ -1,6 +1,6 @@
 # ColôniaWeb
 
-Sistema web de gestão de hospedagens, adaptado do conceito do Sistema Colônia em Python/Tkinter para a avaliação M1 de Aplicativos para Web. Backend em Python/FastAPI, frontend independente em HTML/CSS/JavaScript e banco relacional SQLite. Não contém serviços adicionais nem processamento bancário.
+Sistema web de gestão de hospedagens, adaptado do conceito do Sistema Colônia em Python/Tkinter para a avaliação M1 de Aplicativos para Web. Backend em Python/FastAPI, frontend independente em HTML/CSS/JavaScript e banco relacional SQLite local ou PostgreSQL no Render. Não contém serviços adicionais nem processamento bancário.
 
 ## Começar no Windows
 
@@ -10,7 +10,7 @@ Sistema web de gestão de hospedagens, adaptado do conceito do Sistema Colônia 
 4. Em **Não tenho cadastro**, informe nome, usuário e senha de pelo menos 12 caracteres. Guarde o código de recuperação mostrado uma única vez; depois, entre com seu novo usuário e senha. Não há senha padrão.
 5. Os 14 quartos já aparecem em **Quartos e mapa**. Cadastre um hóspede e crie sua primeira reserva. A diária é R$ 100,00 no 1º andar e R$ 120,00 no 2º.
 
-Mantenha a janela do servidor aberta enquanto usa o sistema. `Ctrl+C` encerra o servidor. Os dados permanecem em `data/colonia.sqlite3`.
+Mantenha a janela do servidor aberta enquanto usa o sistema. `Ctrl+C` encerra o servidor. Sem `DATABASE_URL`, os dados permanecem em `data/colonia.sqlite3`.
 
 ### Exemplos para apresentação
 
@@ -70,7 +70,7 @@ No Windows, também é possível usar diretamente `.venv\Scripts\python.exe` sem
 15. Antes de cancelar uma reserva paga, a recepção deve realizar a devolução externamente e confirmar o estorno no sistema, com motivo. O sistema não movimenta dinheiro.
 16. Hóspedes com reservas ativas não podem ser excluídos. Com histórico, a exclusão desativa; sem histórico, exclui. Quartos da planta fixa nunca são excluídos; podem ser desativados quando não houver reserva ativa. A exclusão de reserva é cancelamento lógico. Pagamentos não são apagados.
 17. Quarto com reservas ativas não pode ser desativado, colocado em manutenção ou ter capacidade reduzida abaixo da quantidade reservada.
-18. Todos os critérios de "hoje" (reserva, disponibilidade, check-in, atrasos e painel) usam explicitamente o calendário `America/Sao_Paulo`, independentemente do fuso do servidor. Instantes de check-in, check-out e estorno são gravados com o deslocamento da região (atualmente `-03:00`); carimbos automáticos do SQLite permanecem em UTC.
+18. Todos os critérios de "hoje" (reserva, disponibilidade, check-in, atrasos e painel) usam explicitamente o calendário `America/Sao_Paulo`, independentemente do fuso do servidor. Instantes de check-in, check-out e estorno são gravados com o deslocamento da região (atualmente `-03:00`); carimbos automáticos do banco permanecem em UTC.
 19. Os registros de serviço, preço de serviços e tabelas associativas de serviços foram removidos do escopo.
 
 ## Organização e padrões
@@ -121,6 +121,8 @@ python manage.py backup backups/colonia-2026-10-18.sqlite3
 
 O comando usa o mecanismo de backup do SQLite e recusa sobrescrever um destino existente. Guarde backups fora de repositórios públicos. Para restaurar, pare todos os processos do servidor e configure `COLONIA_DB` para apontar para uma cópia recuperada do backup; mantenha a base anterior como recuperação. Não copie somente o arquivo principal enquanto houver uma gravação em modo WAL.
 
+Com `DATABASE_URL` configurada, o comando acima não se aplica. Para PostgreSQL, use as ferramentas `pg_dump`/`pg_restore` com a URL **externa** do banco, sem colocar credenciais no repositório.
+
 ## Publicação
 
 O Dockerfile prepara a execução, mas a hospedagem pública e o envio para um repositório remoto ainda precisam ser feitos na conta escolhida por você. Nenhum recurso pago ou conta externa foi criado.
@@ -134,14 +136,26 @@ docker exec -it coloniaweb python manage.py admin
 
 Em produção em servidor próprio, coloque um proxy reverso com **HTTPS** à frente do container, configure o hostname real em `COLONIA_HOSTS` e `COLONIA_SECURE_COOKIE=1`. Configure os cabeçalhos `Host` e `X-Forwarded-Proto` do proxy e permita somente o IP do proxy em `--forwarded-allow-ips` do Uvicorn. Não use `*` para proxies não confiáveis. Os exemplos do `.env.example` são variáveis de ambiente; o arquivo não é carregado automaticamente. No Render, siga a configuração específica abaixo.
 
-Para **preservar** dados no SQLite, use volume persistente, uma única instância da aplicação e backups. Uma hospedagem com disco efêmero perderá os dados ao recriar a instância. A demonstração atende ao porte acadêmico; múltiplas instâncias exigem migração para PostgreSQL e adaptação do controle transacional. Docker/HTTPS remoto não foram executados neste ambiente.
+Para **preservar** dados no SQLite, use volume persistente, uma única instância da aplicação e backups. Uma hospedagem com disco efêmero perderá os dados ao recriar a instância. Com PostgreSQL, o projeto usa uma transação e trava consultiva global nas operações de escrita para manter atômica a verificação de conflitos. Docker/HTTPS remoto e PostgreSQL real não foram executados neste ambiente.
 
-### Render gratuito: demonstração acadêmica descartável
+### Render com PostgreSQL gerenciado
 
-Esta opção publica uma demonstração sem VPS e sem migrar o banco. **Os dados cadastrados no Render podem desaparecer** quando a instância gratuita adormece, reinicia ou é atualizada; a cópia local continua sendo a principal. Use apenas dados fictícios. O plano gratuito não fornece disco persistente para SQLite. Consulte os [limites atuais do Render](https://render.com/docs/free) antes de publicar.
+O `render.yaml` agora declara um serviço web e um banco `coloniaweb-db` no plano gratuito. O Render injeta a URL **interna** do Postgres em `DATABASE_URL`; ela nunca deve ser copiada para o GitHub. Quando `DATABASE_URL` está presente, o programa cria as tabelas e os 14 quartos no PostgreSQL. Sem ela, continua usando SQLite local.
+
+1. Envie os arquivos atualizados, inclusive `backend/schema_postgres.sql`, `requirements.txt` e `render.yaml`, para a raiz do repositório. Não envie `.env`, `data/`, `.venv/` nem `backups/`.
+2. No Render, abra o Blueprint ligado ao repositório e sincronize o `render.yaml`. Confirme que o banco `coloniaweb-db` e o serviço `coloniaweb` estão na **mesma região**. Se o web service tiver sido criado manualmente, crie um Render Postgres separadamente, copie a **Internal Database URL** em **Environment → DATABASE_URL** do serviço e faça novo deploy; nesse caso, não crie outro banco pelo Blueprint.
+3. Espere o deploy finalizar, abra `/api/health`, cadastre um usuário e confira **Quartos e mapa** (14 quartos). Faça um cadastro de hóspede e uma reserva fictícia; saia e entre novamente para verificar que os dados continuam após um novo deploy.
+
+**Atenção:** trocar o banco não transfere contas, reservas ou hóspedes do SQLite antigo. O PostgreSQL começará vazio, com apenas os 14 quartos iniciais. Guarde um backup do SQLite antes da troca. A migração de registros antigos exige uma importação separada. Se `DATABASE_URL` estiver incorreta ou o banco estiver indisponível, o serviço falha; ele **não** volta silenciosamente ao SQLite.
+
+O [Postgres gratuito do Render](https://render.com/docs/free) expira **30 dias** após a criação, tem limite de 1 GB e não oferece backups gerenciados. Após expirar, há prazo de 14 dias para mudar para um plano pago; depois os dados podem ser excluídos. Planeje isso antes da apresentação. A URL interna do banco só funciona entre serviços na mesma conta/região.
+
+### Render antigo: demonstração acadêmica descartável com SQLite
+
+Se você **não** configurar `DATABASE_URL`, ainda é possível publicar só o serviço web com SQLite, sem VPS e sem migrar o banco. **Os dados cadastrados no Render podem desaparecer** quando a instância gratuita reinicia ou é atualizada; a cópia local continua sendo a principal. Use apenas dados fictícios. O plano gratuito não fornece disco persistente para SQLite. Consulte os [limites atuais do Render](https://render.com/docs/free) antes de publicar.
 
 1. Coloque **o conteúdo desta pasta `ColoniaWeb` na raiz de um repositório Git**, sem `data/`, `backups/`, `.venv/` ou `.env`. O arquivo `render.yaml` deve ficar na raiz do repositório. Pode ser privado, desde que você autorize o Render a acessá-lo.
-2. No Render, escolha **New → Blueprint**, conecte o repositório e confira que o serviço será criado com `plan: free` e `runtime: docker`.
+2. Para manter SQLite no Render, crie somente um **Web Service** manual a partir do repositório; não sincronize o novo Blueprint com banco. Configure `runtime: docker` e `plan: free`.
 3. O `render.yaml` já define `COLONIA_SELF_REGISTER=1`: **não é preciso configurar código de ativação nem criar usuário pelo terminal**. Em um serviço existente, confira em **Environment** que `COLONIA_SELF_REGISTER` está definido como `1`; se o serviço não estiver sincronizado com o Blueprint, adicione essa variável manualmente. A variável antiga `COLONIA_DEMO_MODE` pode ser removida depois.
 4. Aguarde a implantação e abra o endereço `https://...onrender.com`. O Render fornece `RENDER_EXTERNAL_HOSTNAME` e `RENDER_EXTERNAL_URL`, que o projeto usa para aceitar o host e a origem do primeiro acesso e do login. O cookie de sessão é `Secure`.
 5. A página abre sempre no **login**. Clique em **Não tenho cadastro**, crie uma conta e **guarde o código de recuperação** apresentado. Volte ao login e entre com usuário e senha. Para testar **Esqueci a senha**, informe usuário, código de recuperação e nova senha; anote o novo código que substituirá o anterior. Use **Encerrar sessão** para sair. Confira `/api/health`, os 14 quartos e uma reserva fictícia. O primeiro acesso após inatividade pode demorar enquanto o serviço gratuito desperta.

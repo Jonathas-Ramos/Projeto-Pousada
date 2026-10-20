@@ -48,6 +48,12 @@ A tela inicial voltou a mostrar sempre o login, agora com **Esqueci a senha** e 
 
 A suíte completa passou com **44 casos**. Os testes cobrem múltiplos cadastros, duplicidade, origem, login, logout, código inválido, limite de tentativas, confirmação de senha, revogação de sessão e geração de código para conta antiga. `node --check frontend/app.js` e `git diff --check` passaram. No Edge headless a **360 px**, foram verificados visualmente login inicial, cadastro, exibição do código, logout, recuperação e login com nova senha, sem erro JavaScript ou rolagem horizontal. A implantação no Render ainda não foi verificada neste teste local.
 
+### Atualização: suporte ao PostgreSQL do Render
+
+Com `DATABASE_URL`, a aplicação passa a usar PostgreSQL com esquema próprio, placeholders convertidos e retorno de IDs após inserção; sem a variável, mantém SQLite local. As gravações em PostgreSQL usam uma trava consultiva transacional global para preservar a serialização antes garantida por `BEGIN IMMEDIATE` no SQLite. O Blueprint declara um Render Postgres gratuito e injeta a URL interna no serviço web. A troca não importa automaticamente registros do banco antigo.
+
+O driver `psycopg` 3.3.6 foi instalado no ambiente local de teste. A suíte completa passou com **49 casos** (44 existentes + 5 testes unitários da camada PostgreSQL), usando bancos SQLite temporários e um conector PostgreSQL simulado. O arquivo `schema_postgres.sql` foi analisado pelo parser PostgreSQL (`pglast`: 13 instruções válidas). **Não houve teste de integração contra um servidor PostgreSQL real nem publicação no Render**, pois não havia uma instância de banco disponível neste ambiente. Esses dois testes devem ser feitos após a sincronização do Blueprint.
+
 ## Navegador e apresentação
 
 Fluxo real executado no Edge headless: login, simular disponibilidade, criar reserva com acompanhante, registrar pagamento, check-in, check-out, criar hóspede e consultar quartos disponíveis. Nenhum erro JavaScript capturado.

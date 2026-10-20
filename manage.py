@@ -57,6 +57,8 @@ def demo():
 
 
 def backup(destination):
+    if os.getenv("DATABASE_URL", "").strip():
+        raise SystemExit("O comando backup atende somente SQLite. Para PostgreSQL, use pg_dump com a URL externa do Render.")
     path=Path(destination)
     if path.exists():
         raise SystemExit("O destino já existe. Escolha um nome novo para preservar o backup anterior.")

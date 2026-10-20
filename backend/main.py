@@ -15,7 +15,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from . import clock, models
 from .config import allowed_hosts, expected_origin
-from .database import initialize, transaction
+from .database import PostgresIntegrityError, PostgresOperationalError, initialize, transaction
 from .repository import Repository, mask_cpf, money, reservation_details, serialize_room
 from .security import COOKIE, SESSION_SECONDS, authenticate, create_first_user, digest, first_access_status, hash_password, register_user, registration_enabled, require_user, reset_password, rotate_recovery_code, secure_cookie, verify_password
 from .services import CatalogService, ReservationService
@@ -67,17 +67,20 @@ async def validation_error(request, error):
 
 
 @app.exception_handler(sqlite3.IntegrityError)
+@app.exception_handler(PostgresIntegrityError)
 async def integrity_error(request, error):
     text = str(error)
+    constraint = getattr(getattr(error, "diag", None), "constraint_name", "")
     message = "Operação viola um vínculo ou uma regra do cadastro."
-    if "hospedes.cpf" in text:
+    if "hospedes.cpf" in text or constraint == "hospedes_cpf_key":
         message = "Já existe um hóspede com esse CPF."
-    elif "quartos.predio" in text:
+    elif "quartos.predio" in text or constraint == "quartos_predio_numero_key":
         message = "Já existe este número de quarto neste prédio."
     return JSONResponse({"detail": message}, status_code=409)
 
 
 @app.exception_handler(sqlite3.OperationalError)
+@app.exception_handler(PostgresOperationalError)
 async def database_error(request, error):
     return JSONResponse({"detail": "Banco temporariamente indisponível. Tente novamente."}, status_code=503)
 
@@ -176,7 +179,7 @@ def change_password(dto: models.TrocaSenha, user: User, response: Response):
 @app.get("/api/hospedes", tags=["Hóspedes"])
 def guests(user: User, q: str = Query("", max_length=150), limit: int = Query(50, ge=1, le=200), offset: int = Query(0, ge=0)):
     with transaction() as db:
-        where, args = "(nome LIKE ? OR cpf LIKE ?)", (f"%{q}%", f"%{q}%")
+        where, args = "(LOWER(nome) LIKE LOWER(?) OR cpf LIKE ?)", (f"%{q}%", f"%{q}%")
         count = db.execute(f"SELECT COUNT(*) FROM hospedes WHERE {where}", args).fetchone()[0]
         rows = db.execute(f"SELECT id,nome,cpf,email,telefone,ativo FROM hospedes WHERE {where} ORDER BY nome LIMIT ? OFFSET ?", (*args, limit, offset))
         items = [{**dict(row), "cpf": mask_cpf(row["cpf"])} for row in rows]
@@ -264,7 +267,7 @@ def delete_room(record_id: int, user: User):
 @app.get("/api/reservas", tags=["Reservas"])
 def reservations(user: User, status: str = Query("", max_length=20), q: str = Query("", max_length=150), limit: int = Query(50, ge=1, le=200), offset: int = Query(0, ge=0)):
     with transaction() as db:
-        sql = "FROM reservas r JOIN hospedes h ON h.id=r.hospede_id WHERE (?='' OR r.status=?) AND (r.codigo LIKE ? OR h.nome LIKE ?)"
+        sql = "FROM reservas r JOIN hospedes h ON h.id=r.hospede_id WHERE (?='' OR r.status=?) AND (r.codigo LIKE ? OR LOWER(h.nome) LIKE LOWER(?))"
         args = (status, status, f"%{q}%", f"%{q}%")
         total = db.execute("SELECT COUNT(*) " + sql, args).fetchone()[0]
         ids = db.execute("SELECT r.id " + sql + " ORDER BY r.entrada DESC,r.id DESC LIMIT ? OFFSET ?", (*args, limit, offset)).fetchall()

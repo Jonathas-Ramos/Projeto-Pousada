@@ -9,3 +9,10 @@ services:
         value: "1"
       - key: COLONIA_SELF_REGISTER
         value: "1"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: coloniaweb-db
+          property: connectionString
+databases:
+  - name: coloniaweb-db
+    plan: free
