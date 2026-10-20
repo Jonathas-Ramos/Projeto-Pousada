@@ -173,7 +173,3 @@ Diagrama de Sequencia:
 Diagrama de Classes:
 <img width="1167" height="927" alt="image" src="https://github.com/user-attachments/assets/283e6106-5ebe-4104-964d-b2dfe3a96720" />
 
-
-## Relação com o Sistema Colônia original
-
-O original Tkinter e seus arquivos TXT permanecem no local anterior. Foram reaproveitados o domínio de hospedagem, prédios/quartos, entrada/saída e organização da recepção. A nova regra de preço é por andar/noite; não usa a tabela antiga por prédio/quantidade. Não há importação automática dos TXT: eles não possuem datas e acompanhantes suficientes para uma migração fiel. Uma instalação nova começa com os 14 quartos; hóspedes e reservas começam vazios, salvo os exemplos que você optar por carregar.
