@@ -1,39 +1,7 @@
 # ColôniaWeb
 
-Sistema web de gestão de hospedagens, adaptado do conceito do Sistema Colônia em Python/Tkinter para a avaliação M1 de Aplicativos para Web. Backend em Python/FastAPI, frontend independente em HTML/CSS/JavaScript e banco relacional SQLite local ou PostgreSQL no Render. Não contém serviços adicionais nem processamento bancário.
+Sistema web de gestão de hospedagens, adaptado do conceito do Sistema Colônia em Python/Tkinter. Backend em Python/FastAPI, frontend independente em HTML/CSS/JavaScript e banco relacional PostgreSQL no Render. Não contém serviços adicionais nem processamento bancário.
 
-## Começar no Windows
-
-1. Tenha **Python 3.13** instalado e disponível no comando `python`.
-2. Execute **`iniciar.bat`**. Na primeira execução, é necessário acesso à internet para instalar as dependências em `.venv`.
-3. Acesse **http://127.0.0.1:8000**. A tela inicial mostra usuário, senha, **Esqueci a senha** e **Não tenho cadastro**.
-4. Em **Não tenho cadastro**, informe nome, usuário e senha de pelo menos 12 caracteres. Guarde o código de recuperação mostrado uma única vez; depois, entre com seu novo usuário e senha. Não há senha padrão.
-5. Os 14 quartos já aparecem em **Quartos e mapa**. Cadastre um hóspede e crie sua primeira reserva. A diária é R$ 100,00 no 1º andar e R$ 120,00 no 2º.
-
-Mantenha a janela do servidor aberta enquanto usa o sistema. `Ctrl+C` encerra o servidor. Sem `DATABASE_URL`, os dados permanecem em `data/colonia.sqlite3`.
-
-### Exemplos para apresentação
-
-Após criar o usuário, em outro terminal na pasta do projeto:
-
-```powershell
-.\.venv\Scripts\python.exe manage.py demo
-```
-
-Cria dois hóspedes fictícios e duas reservas relativas à data da execução, usando os quartos 101 e 201 já cadastrados. Só funciona sem hóspedes/reservas e não sobrescreve dados. Os CPFs de exemplo passam na validação matemática, mas o sistema não verifica se correspondem a pessoas reais.
-
-### Execução manual / Linux / macOS
-
-```sh
-python -m venv .venv
-# Linux/macOS: source .venv/bin/activate
-# Windows PowerShell: .\.venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
-export COLONIA_SELF_REGISTER=1
-python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000
-```
-
-No Windows, também é possível usar diretamente `.venv\Scripts\python.exe` sem ativar o ambiente. Se iniciar manualmente pelo PowerShell, defina `$env:COLONIA_SELF_REGISTER='1'` antes do comando do servidor; `iniciar.bat` já faz isso.
 
 ## Funcionalidades
 
